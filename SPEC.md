@@ -248,21 +248,22 @@ Cancel (สามารถยกเลิกได้ทุกสถานะ)
 
 **Features:**
 
-- ✅ ดูรายการจองที่รอการอนุมัติ
+- ✅ ดูรายการจองที่รอการอนุมัติ (สถานะเป็น Confirm)
 - ✅ ตรวจสอบสลิปการชำระเงิน
-- ✅ อัพเดทสถานะการจอง (Pending → Confirm → Complete)
-- ✅ ออกใบแจ้งหนี้ (Invoice) เมื่อสถานะเป็น Pending
+- ✅ อัพเดทสถานะการจอง (Confirm → Complete)
+- ✅ ออกใบแจ้งหนี้ (Invoice) เมื่อสถานะเป็น Confirm
 - ✅ ออกใบเสร็จรับเงิน (Receipt) เมื่อสถานะเป็น Complete
 - ✅ บันทึกประวัติการเปลี่ยนแปลงสถานะ
 
 **Business Rules:**
 
-1. **Pending → Confirm**:
+1. **Confirm → Complete**:
    - เมื่อได้รับการชำระเงินครบถ้วน
-   - ออกใบแจ้งหนี้ (Invoice)
-2. **Confirm → Complete**:
-   - เมื่อลูกค้าเดินทางเสร็จสิ้น
+   - ตรวจสอบสลิปการชำระเงิน
    - ออกใบเสร็จรับเงิน (Receipt)
+2. **Confirm → Complete**:
+   - หากไม่มีการอัพโหลดสลิปการชำระเงิน
+   - ออกใบแจ้งหนี้ (Invoice)
 3. **Any → Cancel**:
    - สามารถยกเลิกได้ทุกสถานะ
    - ต้องระบุเหตุผล
@@ -270,7 +271,7 @@ Cancel (สามารถยกเลิกได้ทุกสถานะ)
 **Technical Requirements:**
 
 - เก็บประวัติการเปลี่ยนสถานะใน Sheet: `Booking_Status_History`
-- สร้างเอกสาร Invoice/Receipt เป็น PDF ใน Google Drive
+- สร้างเอกสาร Invoice/Receipt เป็น PDF ใน Google Drive ของแต่ละ Booking ID
 - บันทึก URL เอกสารใน `Booking_Status_History` (คอลัมน์ H)
 
 ---

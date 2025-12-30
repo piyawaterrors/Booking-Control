@@ -74,6 +74,28 @@
           <span class="font-medium">Dashboard</span>
         </a>
 
+        <!-- Reports -->
+        <a
+          href="#"
+          data-page="reports"
+          class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            ></path>
+          </svg>
+          <span class="font-medium">รายงาน</span>
+        </a>
+        
         <!-- Bookings -->
         <a
           href="#"
@@ -96,11 +118,12 @@
           <span class="font-medium">การจอง</span>
         </a>
 
-        <!-- Employees (Owner only) -->
+
+        <!-- Payment Approval (AR/AP, Owner only) -->
         <a
           href="#"
-          data-page="employees"
-          data-role="Owner"
+          data-page="payment-approval"
+          data-role="AR_AP,Owner"
           class="sidebar-item hidden flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
         >
           <svg
@@ -113,10 +136,10 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             ></path>
           </svg>
-          <span class="font-medium">พนักงาน</span>
+          <span class="font-medium">อนุมัติการชำระเงิน</span>
         </a>
 
         <!-- Programs -->
@@ -169,11 +192,12 @@
           <span class="font-medium">สถานที่</span>
         </a>
 
-        <!-- Reports -->
+         <!-- Employees (Owner only) -->
         <a
           href="#"
-          data-page="reports"
-          class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
+          data-page="employees"
+          data-role="Owner"
+          class="sidebar-item hidden flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
         >
           <svg
             class="w-5 h-5"
@@ -185,10 +209,10 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
             ></path>
           </svg>
-          <span class="font-medium">รายงาน</span>
+          <span class="font-medium">พนักงาน</span>
         </a>
       </div>
     </nav>
@@ -336,6 +360,11 @@
       <!-- Locations Page -->
       <div id="page-locations" class="page-container">
         <?!= include('PageLocations'); ?>
+      </div>
+
+      <!-- Payment Approval Page -->
+      <div id="page-payment-approval" class="page-container">
+        <?!= include('PagePaymentApproval'); ?>
       </div>
 
       <!-- Reports Page -->
@@ -582,6 +611,15 @@
       lastPage = null; // Force default redirect
     }
 
+    // Security Check: Prevent non-AR_AP/Owner from accessing payment-approval
+    if (
+      lastPage === "payment-approval" &&
+      currentUser.role !== "AR_AP" &&
+      currentUser.role !== "Owner"
+    ) {
+      lastPage = null; // Force default redirect
+    }
+
     if (lastPage) {
       // โหลดหน้าที่เคยเปิดล่าสุด
       loadPageContent(lastPage);
@@ -591,7 +629,10 @@
       if (currentUser.role === "Cost" || currentUser.role === "Owner") {
         loadPageContent("dashboard");
         navigateTo("dashboard");
-      } else if (currentUser.role === "OP" || currentUser.role === "AR_AP") {
+      } else if (currentUser.role === "AR_AP") {
+        loadPageContent("payment-approval");
+        navigateTo("payment-approval");
+      } else if (currentUser.role === "OP") {
         loadPageContent("booking");
         navigateTo("booking");
       }
@@ -625,20 +666,30 @@
       const requiredRole = item.getAttribute("data-role");
       const pageName = item.getAttribute("data-page");
 
-      // Reset visibility first (unless it has 'hidden' class by default in HTML, but here we manage dynamically)
-      // Actually, better to start by checking rules.
-
       let isVisible = true;
 
-      // Rule 1: Role Specific Menu (e.g. Employees for Owner)
+      // Rule 1: Role Specific Menu (e.g. Employees for Owner, Payment Approval for AR_AP/Owner)
       if (requiredRole) {
-        if (role !== requiredRole && role !== "Owner") {
+        // Support multiple roles separated by comma
+        const allowedRoles = requiredRole.split(",").map((r) => r.trim());
+
+        // Check if current role is in allowed roles OR if user is Owner (Owner has access to everything)
+        if (!allowedRoles.includes(role) && role !== "Owner") {
           isVisible = false;
         }
       }
 
       // Rule 2: OP Role Restriction (Only Booking)
       if (role === "OP" && pageName !== "booking") {
+        isVisible = false;
+      }
+
+      // Rule 3: AR_AP Role - Show only Booking and Payment Approval
+      if (
+        role === "AR_AP" &&
+        pageName !== "booking" &&
+        pageName !== "payment-approval"
+      ) {
         isVisible = false;
       }
 
@@ -703,6 +754,10 @@
           title: "จัดการสถานที่",
           subtitle: "จัดการสถานที่ท่องเที่ยว",
         },
+        "payment-approval": {
+          title: "อนุมัติการชำระเงิน",
+          subtitle: "จัดการและอนุมัติการชำระเงิน",
+        },
         reports: { title: "รายงาน", subtitle: "รายงานและสถิติ" },
       };
 
@@ -735,6 +790,7 @@
       employees: "loadEmployees",
       programs: "loadPrograms",
       locations: "loadLocations",
+      "payment-approval": "loadPaymentApproval",
       reports: "loadReports",
     };
 
