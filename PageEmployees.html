@@ -528,12 +528,12 @@
 
 <!-- Delete Confirmation Modal -->
 <div
-  id="deleteModal"
-  class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm"
+  id="deleteEmployeeModal"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300"
 >
   <div
-    id="deleteModalContent"
-    class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+    id="deleteEmployeeModalContent"
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden transform transition-all scale-95 opacity-0"
   >
     <div class="bg-red-50 p-6 flex items-center space-x-4">
       <div
@@ -1194,13 +1194,14 @@
     document.getElementById("deleteEmployeeId").value = userId;
     document.getElementById("deleteEmployeeName").textContent = fullName;
 
-    const modal = document.getElementById("deleteModal");
-    const modalContent = document.getElementById("deleteModalContent");
+    const modal = document.getElementById("deleteEmployeeModal");
+    const modalContent = document.getElementById("deleteEmployeeModalContent");
 
     modal.classList.remove("hidden");
-    modal.classList.add("modal-show");
+    // Animation
     setTimeout(() => {
-      modalContent.classList.add("modal-content-show");
+      modalContent.classList.remove("scale-95", "opacity-0");
+      modalContent.classList.add("scale-100", "opacity-100");
     }, 10);
   }
 
@@ -1208,17 +1209,15 @@
    * Close Delete Modal
    */
   function closeDeleteModal() {
-    const modal = document.getElementById("deleteModal");
-    const modalContent = document.getElementById("deleteModalContent");
+    const modal = document.getElementById("deleteEmployeeModal");
+    const modalContent = document.getElementById("deleteEmployeeModalContent");
 
-    modal.classList.add("modal-hide");
-    modalContent.classList.add("modal-content-hide");
+    modalContent.classList.remove("scale-100", "opacity-100");
+    modalContent.classList.add("scale-95", "opacity-0");
 
     setTimeout(() => {
       modal.classList.add("hidden");
-      modal.classList.remove("modal-show", "modal-hide");
-      modalContent.classList.remove("modal-content-show", "modal-content-hide");
-    }, 50);
+    }, 300);
   }
 
   /**
@@ -1272,17 +1271,6 @@
       })
       .deleteUser(session.sessionToken, userId);
   }
-
-  // Event Listeners
-  document
-    .getElementById("searchEmployee")
-    .addEventListener("input", filterEmployees);
-  document
-    .getElementById("filterRole")
-    .addEventListener("change", filterEmployees);
-  document
-    .getElementById("filterStatus")
-    .addEventListener("change", filterEmployees);
 
   // Load employees on page load
   loadEmployees();

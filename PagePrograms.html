@@ -472,6 +472,12 @@
     if (tbody) tbody.innerHTML = loadingHtml;
     if (gbody) gbody.innerHTML = gridLoadingHtml;
 
+    const session = getSessionFromStorage();
+    if (!session || !session.sessionToken) {
+      showToast("กรุณาเข้าสู่ระบบใหม่", "error");
+      return;
+    }
+
     google.script.run
       .withSuccessHandler(function (response) {
         if (response.success) {
@@ -487,7 +493,7 @@
         showToast("เกิดข้อผิดพลาด: " + error.message, "error");
         if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500">เกิดข้อผิดพลาด: ${error.message}</td></tr>`;
       })
-      .getAllPrograms();
+      .getAllPrograms(session.sessionToken);
   }
 
   /**

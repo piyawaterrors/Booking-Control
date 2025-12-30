@@ -1,10 +1,88 @@
-<!-- Booking Management Page -->
-<div class="bg-white rounded-lg shadow p-6">
-  <div class="flex items-center justify-between mb-6">
-    <h3 class="text-xl font-semibold text-gray-800">รายการจองทั้งหมด</h3>
+<!-- Booking Management Page - Modern UI -->
+<div class="space-y-6">
+  <!-- Header Actions -->
+  <div
+    class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+  >
+    <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-center">
+      <!-- Refresh Button -->
+      <button
+        onclick="refreshBookingsData()"
+        class="hidden sm:flex p-3 bg-white border-2 border-gray-100 rounded-xl text-gray-500 hover:text-purple-600 hover:border-purple-100 hover:bg-purple-50 transition-all duration-200 shadow-sm"
+        title="รีเฟรชข้อมูล"
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          ></path>
+        </svg>
+      </button>
+
+      <!-- Search -->
+      <div class="relative flex-1 sm:w-64">
+        <input
+          type="text"
+          id="searchBooking"
+          placeholder="ค้นหาการจอง..."
+          onkeyup="filterBookings()"
+          class="w-full pl-10 pr-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200"
+        />
+        <svg
+          class="w-5 h-5 text-gray-400 absolute left-3 top-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          ></path>
+        </svg>
+      </div>
+
+      <!-- Filter by Status -->
+      <select
+        id="filterStatus"
+        onchange="filterBookings()"
+        class="w-full sm:w-auto px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 bg-white select-modern"
+      >
+        <option value="">ทุกสถานะ</option>
+        <option value="Confirm">Confirm</option>
+        <option value="Complete">Complete</option>
+        <option value="Cancel">Cancel</option>
+      </select>
+
+      <!-- Date Range Filters -->
+      <input
+        type="date"
+        id="filterDateFrom"
+        onchange="filterBookings()"
+        class="w-full sm:w-auto px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200"
+        placeholder="วันที่เริ่มต้น"
+      />
+      <input
+        type="date"
+        id="filterDateTo"
+        onchange="filterBookings()"
+        class="w-full sm:w-auto px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200"
+        placeholder="วันที่สิ้นสุด"
+      />
+    </div>
+
+    <!-- Add Booking Button -->
     <button
       onclick="openCreateBookingModal()"
-      class="btn-primary px-6 py-2 text-white rounded-lg flex items-center space-x-2"
+      class="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 font-semibold shadow-lg shadow-purple-200"
     >
       <svg
         class="w-5 h-5"
@@ -23,111 +101,2047 @@
     </button>
   </div>
 
-  <!-- Filters -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2">ค้นหา</label>
-      <input
-        type="text"
-        id="searchBooking"
-        placeholder="รหัสการจอง, ชื่อสถานที่..."
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-      />
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2">สถานะ</label>
-      <select
-        id="filterStatus"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-      >
-        <option value="">ทั้งหมด</option>
-        <option value="Pending">Pending</option>
-        <option value="Confirm">Confirm</option>
-        <option value="Complete">Complete</option>
-        <option value="Cancel">Cancel</option>
-      </select>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2"
-        >วันที่เริ่มต้น</label
-      >
-      <input
-        type="date"
-        id="filterDateFrom"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-      />
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2"
-        >วันที่สิ้นสุด</label
-      >
-      <input
-        type="date"
-        id="filterDateTo"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-      />
-    </div>
-  </div>
-
-  <!-- Booking Table -->
-  <div class="overflow-x-auto">
-    <table class="w-full">
-      <thead class="bg-gray-50 border-b-2 border-gray-200">
-        <tr>
+  <!-- Booking Table Container (Desktop) -->
+  <div
+    class="hidden lg:block bg-white rounded-2xl shadow-xl shadow-gray-100 overflow-hidden border border-gray-100"
+  >
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="bg-gray-50 border-b border-gray-100">
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             รหัสการจอง
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             วันที่จอง
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             วันที่เดินทาง
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             สถานที่
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             โปรแกรม
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             จำนวนคน
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             ยอดรวม
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             สถานะ
           </th>
           <th
-            class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+            class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             จัดการ
           </th>
         </tr>
       </thead>
-      <tbody id="bookingTableBody" class="divide-y divide-gray-200">
+      <tbody id="bookingTableBody" class="divide-y divide-gray-100">
         <tr>
-          <td colspan="9" class="px-4 py-8 text-center text-gray-500">
-            กำลังโหลดข้อมูล...
+          <td colspan="9" class="px-6 py-12 text-center text-gray-400">
+            <div class="flex flex-col items-center space-y-3">
+              <div
+                class="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"
+              ></div>
+              <span>กำลังดึงข้อมูลการจอง...</span>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
+
+  <!-- Booking List Container (Mobile/Tablet) -->
+  <div
+    id="bookingGridBody"
+    class="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-4"
+  >
+    <!-- Mobile cards will be rendered here -->
+  </div>
+
+  <!-- Pagination Controls -->
+  <div
+    class="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 gap-4 mt-4"
+    id="bookingPaginationControl"
+  >
+    <!-- Rows per page -->
+    <div class="flex items-center space-x-3 text-sm text-gray-600">
+      <span class="font-medium">แสดง</span>
+      <select
+        id="bookingItemsPerPageSelect"
+        onchange="changeBookingPageSize()"
+        class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer font-bold text-gray-700"
+      >
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+      <span class="font-medium">รายการต่อหน้า</span>
+    </div>
+
+    <!-- Page Info & Navigation -->
+    <div class="flex flex-col sm:flex-row items-center gap-4">
+      <span
+        class="hidden sm:inline text-sm font-medium text-gray-500"
+        id="bookingPaginationInfo"
+        >หน้า 1 จาก 1 (0 รายการ)</span
+      >
+      <div class="flex items-center space-x-1">
+        <button
+          onclick="changeBookingPage('prev')"
+          id="bookingPrevPageBtn"
+          class="p-4 sm:p-2 border border-gray-200 rounded-xl sm:rounded-lg hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          <svg
+            class="w-6 h-6 sm:w-5 sm:h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            ></path>
+          </svg>
+        </button>
+
+        <!-- Desktop Page Numbers -->
+        <div
+          id="bookingPageNumbers"
+          class="hidden sm:flex items-center space-x-1"
+        >
+          <!-- Page buttons will be injected here -->
+        </div>
+
+        <!-- Mobile Page Info -->
+        <div
+          class="sm:hidden flex items-center px-6 py-2 bg-purple-50 rounded-xl text-sm font-bold text-purple-700 min-w-[100px] justify-center"
+        >
+          <span id="bookingMobilePageInfo">1 / 1</span>
+        </div>
+
+        <button
+          onclick="changeBookingPage('next')"
+          id="bookingNextPageBtn"
+          class="p-4 sm:p-2 border border-gray-200 rounded-xl sm:rounded-lg hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          <svg
+            class="w-6 h-6 sm:w-5 sm:h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div
+    id="emptyState"
+    class="hidden text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-100"
+  >
+    <div
+      class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4"
+    >
+      <svg
+        class="w-10 h-10 text-gray-300"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+        ></path>
+      </svg>
+    </div>
+    <h3 class="text-lg font-bold text-gray-900">ไม่พบข้อมูลการจอง</h3>
+    <p class="text-gray-500">ลองเปลี่ยนเงื่อนไขการค้นหาหรือสร้างการจองใหม่</p>
+  </div>
 </div>
+
+<!-- Create/Edit Booking Modal -->
+<div
+  id="bookingModal"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 transition-opacity duration-300"
+>
+  <div
+    id="bookingModalContent"
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95 opacity-0"
+  >
+    <!-- Modal Header -->
+    <div
+      class="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 p-6 flex items-center justify-between border-b border-purple-500 z-10"
+    >
+      <div class="flex items-center space-x-3">
+        <div
+          class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center"
+        >
+          <svg
+            class="w-6 h-6 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            ></path>
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <h3 class="text-xl font-bold text-white" id="modalTitle">
+            สร้างการจองใหม่
+          </h3>
+          <p id="modalSubtitle" class="text-indigo-100 text-sm hidden"></p>
+        </div>
+      </div>
+      <button
+        onclick="closeBookingModal()"
+        class="absolute top-4 right-4 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <form id="bookingForm" class="p-6">
+      <input type="hidden" id="bookingId" />
+      <input type="hidden" id="editMode" value="false" />
+
+      <!-- Grid Layout -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- วันที่จอง -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >วันที่จอง <span class="text-red-500">*</span></label
+          >
+          <input type="date" id="bookingDate" required class="input-modern" />
+        </div>
+
+        <!-- วันที่เดินทาง -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >วันที่เดินทาง <span class="text-red-500">*</span></label
+          >
+          <input type="date" id="travelDate" required class="input-modern" />
+        </div>
+
+        <!-- สถานที่ -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >สถานที่ <span class="text-red-500">*</span></label
+          >
+          <select id="location" required class="input-modern select-modern">
+            <option value="">เลือกสถานที่</option>
+          </select>
+        </div>
+
+        <!-- โปรแกรม -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >โปรแกรม <span class="text-red-500">*</span></label
+          >
+          <select
+            id="program"
+            required
+            class="input-modern select-modern"
+            onchange="updatePrices()"
+          >
+            <option value="">เลือกโปรแกรม</option>
+          </select>
+        </div>
+
+        <!-- ผู้ใหญ่ -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >ผู้ใหญ่ (คน) <span class="text-red-500">*</span></label
+          >
+          <input
+            type="number"
+            id="adults"
+            min="0"
+            value="0"
+            required
+            class="input-modern"
+            onchange="calculateTotal()"
+          />
+        </div>
+
+        <!-- เด็ก -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >เด็ก (คน)</label
+          >
+          <input
+            type="number"
+            id="children"
+            min="0"
+            value="0"
+            class="input-modern"
+            onchange="calculateTotal()"
+          />
+        </div>
+
+        <!-- ราคาผู้ใหญ่ -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >ราคาผู้ใหญ่ (บาท) <span class="text-red-500">*</span></label
+          >
+          <input
+            type="number"
+            id="adultPrice"
+            min="0"
+            value="0"
+            required
+            readonly
+            class="input-modern"
+            onchange="calculateTotal()"
+          />
+        </div>
+
+        <!-- ราคาเด็ก -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >ราคาเด็ก (บาท)</label
+          >
+          <input
+            type="number"
+            id="childPrice"
+            min="0"
+            value="0"
+            class="input-modern"
+            readonly
+            onchange="calculateTotal()"
+          />
+        </div>
+
+        <!-- ส่วนลด -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >ส่วนลด (บาท)</label
+          >
+          <input
+            type="number"
+            id="discount"
+            min="0"
+            value="0"
+            class="input-modern"
+            onchange="calculateTotal()"
+          />
+        </div>
+
+        <!-- Agent -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Agent/ช่องทาง</label
+          >
+          <input
+            type="text"
+            id="agent"
+            placeholder="ระบุ Agent หรือช่องทาง"
+            class="input-modern"
+          />
+        </div>
+
+        <!-- หมายเหตุ -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >หมายเหตุ</label
+          >
+          <textarea
+            id="notes"
+            rows="3"
+            placeholder="หมายเหตุเพิ่มเติม..."
+            class="input-modern"
+          ></textarea>
+        </div>
+
+        <!-- อัพโหลดสลิปการชำระเงิน -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            สลิปการชำระเงิน
+          </label>
+          <div
+            class="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-purple-400 transition-all"
+          >
+            <input
+              type="file"
+              id="slipFile"
+              accept="image/*,.pdf"
+              class="hidden"
+              onchange="handleSlipFileSelect(event)"
+            />
+            <div
+              id="slipUploadArea"
+              class="text-center cursor-pointer"
+              onclick="document.getElementById('slipFile').click()"
+            >
+              <svg
+                class="w-12 h-12 mx-auto text-gray-400 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                ></path>
+              </svg>
+              <p class="text-sm text-gray-600 mb-1">
+                <span class="text-purple-600 font-semibold"
+                  >คลิกเพื่ออัพโหลด</span
+                >
+                หรือลากไฟล์มาวาง
+              </p>
+              <p class="text-xs text-gray-500">
+                รองรับไฟล์ภาพ (JPG, PNG) หรือ PDF (ขนาดไม่เกิน 5MB)
+              </p>
+            </div>
+            <div id="slipPreview" class="hidden mt-4">
+              <div
+                class="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+              >
+                <div class="flex items-center space-x-3">
+                  <svg
+                    class="w-8 h-8 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                  <div>
+                    <p
+                      class="text-sm font-semibold text-gray-700"
+                      id="slipFileName"
+                    >
+                      -
+                    </p>
+                    <p class="text-xs text-gray-500" id="slipFileSize">-</p>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <a
+                    id="slipViewLink"
+                    href="#"
+                    target="_blank"
+                    class="text-purple-600 hover:text-purple-800 p-1 hidden"
+                    title="ดูสลิป"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      ></path>
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      ></path>
+                    </svg>
+                  </a>
+                  <button
+                    type="button"
+                    onclick="clearSlipFile()"
+                    class="text-red-500 hover:text-red-700 p-1"
+                    title="ลบ"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="slipUrl" />
+        </div>
+
+        <!-- ยอดรวม (แสดงผล) -->
+        <div class="md:col-span-2">
+          <div
+            class="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-6 shadow-sm"
+          >
+            <!-- Calculation Breakdown -->
+            <div class="space-y-3 mb-4">
+              <div class="flex items-center justify-between text-sm">
+                <div class="flex items-center space-x-2">
+                  <svg
+                    class="w-4 h-4 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    ></path>
+                  </svg>
+                  <span class="text-gray-600 font-medium" id="adultSummary"
+                    >ผู้ใหญ่: 0 คน × 0 ฿</span
+                  >
+                </div>
+                <span class="font-bold text-gray-900" id="adultTotal">0 ฿</span>
+              </div>
+
+              <div class="flex items-center justify-between text-sm">
+                <div class="flex items-center space-x-2">
+                  <svg
+                    class="w-4 h-4 text-indigo-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                  <span class="text-gray-600 font-medium" id="childSummary"
+                    >เด็ก: 0 คน × 0 ฿</span
+                  >
+                </div>
+                <span class="font-bold text-gray-900" id="childTotal">0 ฿</span>
+              </div>
+
+              <div
+                class="flex items-center justify-between text-sm"
+                id="discountRow"
+              >
+                <div class="flex items-center space-x-2">
+                  <svg
+                    class="w-4 h-4 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                    ></path>
+                  </svg>
+                  <span class="text-gray-600 font-medium">ส่วนลด</span>
+                </div>
+                <span class="font-bold text-red-600" id="discountAmount"
+                  >- 0 ฿</span
+                >
+              </div>
+
+              <div class="border-t-2 border-purple-300 pt-3 mt-2"></div>
+            </div>
+
+            <!-- Total Amount -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <svg
+                  class="w-6 h-6 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                <span class="text-xl font-bold text-gray-800"
+                  >ยอดรวมทั้งหมด</span
+                >
+              </div>
+              <span class="text-3xl font-bold text-purple-600" id="totalAmount"
+                >0 ฿</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex justify-end space-x-3 mt-6 pt-6 border-t">
+        <button
+          type="button"
+          id="cancelBookingBtn"
+          onclick="closeBookingModal()"
+          class="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ยกเลิก
+        </button>
+        <button
+          type="submit"
+          id="saveBookingBtn"
+          class="btn-primary px-6 py-2 text-white rounded-lg flex items-center space-x-2"
+        >
+          <span
+            id="saveBtnSpinner"
+            class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+          ></span>
+          <span id="saveBtnText">บันทึก</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- View Booking Details Modal -->
+<div
+  id="viewBookingModal"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 transition-opacity duration-300"
+>
+  <div
+    id="viewBookingModalContent"
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95 opacity-0"
+  >
+    <!-- Modal Header -->
+    <div
+      class="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 p-6 flex items-center justify-between border-b border-indigo-500 z-10"
+    >
+      <div class="flex items-center space-x-3">
+        <div
+          class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center"
+        >
+          <svg
+            class="w-6 h-6 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            ></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            ></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">รายละเอียดการจอง</h3>
+          <p class="text-indigo-100 text-sm" id="viewBookingId">-</p>
+        </div>
+      </div>
+      <button
+        onclick="closeViewBookingModal()"
+        class="absolute top-4 right-4 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="p-6" id="viewBookingContent">
+      <!-- Content will be populated by JavaScript -->
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div
+  id="deleteModal"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300"
+>
+  <div
+    class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transform transition-all scale-95 opacity-0"
+    id="deleteModalContent"
+  >
+    <!-- Header (Employee Style) -->
+    <div class="bg-red-50 p-6 flex items-center space-x-4">
+      <div
+        class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"
+      >
+        <svg
+          class="w-6 h-6 text-red-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          ></path>
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-gray-900">ยืนยันการยกเลิก</h3>
+        <p class="text-sm text-gray-500" id="deleteBookingIdDisplay">...</p>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="p-6">
+      <p class="text-gray-600 mb-6">
+        คุณแน่ใจหรือไม่ที่จะยกเลิกรายการจองนี้?
+        <br /><span class="text-sm text-gray-500"
+          >การกระทำนี้จะเปลี่ยนสถานะเป็น "Cancel"</span
+        >
+      </p>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >สาเหตุการยกเลิก <span class="text-red-500">*</span></label
+        >
+        <textarea
+          id="deleteReason"
+          rows="3"
+          class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none"
+          placeholder="ระบุเหตุผลที่ต้องการยกเลิก..."
+        ></textarea>
+        <p id="deleteReasonError" class="text-red-500 text-xs mt-1 hidden">
+          กรุณาระบุเหตุผล
+        </p>
+      </div>
+
+      <div class="flex space-x-3">
+        <button
+          id="btnCancelDelete"
+          onclick="closeBookingDeleteModal()"
+          class="flex-1 px-6 py-3 border-2 border-gray-100 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all"
+        >
+          ยกเลิก
+        </button>
+        <button
+          onclick="executeDelete()"
+          class="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 hover:shadow-lg shadow-red-100 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed transition-all font-bold flex items-center justify-center space-x-2"
+          id="btnConfirmDelete"
+        >
+          <span
+            id="deleteSpinner"
+            class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+          ></span>
+          <span>ยืนยันการลบ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let deletingBookingId = null;
+
+  function openBookingDeleteModal(bookingId) {
+    deletingBookingId = bookingId;
+    document.getElementById("deleteBookingIdDisplay").textContent =
+      "รหัส: " + bookingId;
+    document.getElementById("deleteReason").value = "";
+    document.getElementById("deleteReasonError").classList.add("hidden");
+
+    const modal = document.getElementById("deleteModal");
+    const content = document.getElementById("deleteModalContent");
+
+    modal.classList.remove("hidden");
+    // Animation
+    setTimeout(() => {
+      content.classList.remove("scale-95", "opacity-0");
+      content.classList.add("scale-100", "opacity-100");
+    }, 10);
+  }
+
+  function closeBookingDeleteModal() {
+    const modal = document.getElementById("deleteModal");
+    const content = document.getElementById("deleteModalContent");
+
+    content.classList.remove("scale-100", "opacity-100");
+    content.classList.add("scale-95", "opacity-0");
+
+    setTimeout(() => {
+      modal.classList.add("hidden");
+      deletingBookingId = null;
+    }, 300);
+  }
+
+  function executeDelete() {
+    if (!deletingBookingId) return;
+
+    const reason = document.getElementById("deleteReason").value.trim();
+    if (!reason) {
+      document.getElementById("deleteReasonError").classList.remove("hidden");
+      document.getElementById("deleteReason").focus();
+      return;
+    }
+
+    const btn = document.getElementById("btnConfirmDelete");
+    const spinner = document.getElementById("deleteSpinner");
+    const btnCancel = document.getElementById("btnCancelDelete");
+    const btnText = btn.querySelector("span");
+
+    // Loading State
+    btn.disabled = true;
+    btnCancel.disabled = true;
+    spinner.classList.remove("hidden");
+    const originalText = btnText.textContent;
+    btnText.textContent = "กำลังลบ...";
+
+    const session = getSessionFromStorage();
+
+    google.script.run
+      .withSuccessHandler((response) => {
+        // Reset State
+        btn.disabled = false;
+        btnCancel.disabled = false;
+        spinner.classList.add("hidden");
+        btnText.textContent = originalText;
+
+        closeBookingDeleteModal();
+
+        if (response.success) {
+          showToast("ยกเลิกรายการจองสำเร็จ", "success");
+          loadBookings(); // Refresh data
+        } else {
+          showToast(response.message || "ไม่สามารถยกเลิกได้", "error");
+        }
+      })
+      .withFailureHandler((error) => {
+        // Reset State
+        btn.disabled = false;
+        btnCancel.disabled = false;
+        spinner.classList.add("hidden");
+        btnText.textContent = originalText;
+
+        closeBookingDeleteModal();
+        showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+      })
+      .deleteBooking(session.sessionToken, deletingBookingId, reason);
+  }
+  // Global variables
+  var allBookings = [];
+  var allLocations = [];
+  var allPrograms = [];
+  var currentSession = null;
+
+  /**
+   * Refresh Bookings Data
+   */
+  function refreshBookingsData() {
+    document.getElementById("searchBooking").value = "";
+    document.getElementById("filterStatus").value = "";
+    document.getElementById("filterDateFrom").value = "";
+    document.getElementById("filterDateTo").value = "";
+    loadBookings();
+  }
+
+  /**
+   * Load Bookings
+   */
+  function loadBookings() {
+    const session = getSessionFromStorage();
+    if (!session || !session.sessionToken) {
+      showToast("กรุณาเข้าสู่ระบบใหม่", "error");
+      return;
+    }
+
+    currentSession = session;
+
+    // Show loading
+    document.getElementById("bookingTableBody").innerHTML = `
+      <tr>
+        <td colspan="9" class="px-6 py-12 text-center">
+          <div class="flex flex-col items-center justify-center space-y-3">
+            <div class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div>
+            <p class="text-gray-400 text-sm font-medium animate-pulse">กำลังดึงข้อมูลการจอง...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    // Load locations and programs first
+    Promise.all([
+      new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(() => resolve({ success: false, data: [] }))
+          .getAllLocations(session.sessionToken);
+      }),
+      new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(() => resolve({ success: false, data: [] }))
+          .getAllPrograms(session.sessionToken);
+      }),
+    ]).then(([locationsResult, programsResult]) => {
+      if (locationsResult.success) {
+        allLocations = locationsResult.data;
+      }
+      if (programsResult.success) {
+        allPrograms = programsResult.data;
+      }
+
+      // Load bookings
+      google.script.run
+        .withSuccessHandler(function (response) {
+          if (response.success) {
+            allBookings = response.data || [];
+            renderBookings(allBookings);
+          } else {
+            showToast(response.message || "ไม่สามารถโหลดข้อมูลได้", "error");
+            document.getElementById("bookingTableBody").innerHTML = `
+              <tr>
+                <td colspan="9" class="px-6 py-8 text-center text-red-500">
+                  ${response.message || "ไม่พบข้อมูล"}
+                </td>
+              </tr>
+            `;
+          }
+        })
+        .withFailureHandler(function (error) {
+          showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+          document.getElementById("bookingTableBody").innerHTML = `
+            <tr>
+              <td colspan="9" class="px-6 py-8 text-center text-red-500">
+                เกิดข้อผิดพลาด: ${error.message}
+              </td>
+            </tr>
+          `;
+        })
+        .getAllBookings(session.sessionToken);
+    });
+  }
+
+  /**
+   * Get Program Name from Program ID
+   */
+  function getProgramName(programId) {
+    const program = allPrograms.find((p) => p.programId === programId);
+    return program ? program.description : programId; // ถ้าไม่เจอให้แสดง ID
+  }
+
+  /**
+   * Render Bookings Table
+   */
+  function renderBookings(bookings) {
+    const tbody = document.getElementById("bookingTableBody");
+    const gridBody = document.getElementById("bookingGridBody");
+    const hasData = bookings && bookings.length > 0;
+
+    // 1. Render Table View (Desktop)
+    if (!hasData) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" class="px-4 py-8 text-center text-gray-500">
+            ไม่พบข้อมูลการจอง
+          </td>
+        </tr>
+      `;
+    } else {
+      tbody.innerHTML = bookings
+        .map((booking) => {
+          const statusBadge = getStatusBadge(booking.status);
+          const totalPeople = (booking.adults || 0) + (booking.children || 0);
+          const isCancelled = booking.status === "Cancel";
+          const canEdit =
+            !isCancelled &&
+            (currentSession.role === "Owner" ||
+              booking.createdBy === currentSession.username);
+
+          return `
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="px-4 py-3 text-sm font-medium text-gray-900">${
+                booking.bookingId
+              }</td>
+              <td class="px-4 py-3 text-sm text-gray-600">${formatDateDisplay(
+                booking.bookingDate
+              )}</td>
+              <td class="px-4 py-3 text-sm text-gray-600">${formatDateDisplay(
+                booking.travelDate
+              )}</td>
+              <td class="px-4 py-3 text-sm text-gray-600">${
+                booking.location
+              }</td>
+              <td class="px-4 py-3 text-sm text-gray-600">${
+                booking.program
+              }</td>
+  
+              <td class="px-4 py-3 text-sm text-gray-600">${totalPeople} คน</td>
+              <td class="px-4 py-3 text-sm font-semibold text-gray-900">${formatNumber(
+                booking.totalAmount
+              )} ฿</td>
+              <td class="px-4 py-3">${statusBadge}</td>
+              <td class="px-4 py-3 text-center">
+                <div class="flex items-center justify-center space-x-2">
+                  <button
+                    onclick="viewBooking('${booking.bookingId}')"
+                    class="p-2 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-xl transition-all duration-200 shadow-sm bg-white"
+                    title="ดูรายละเอียด"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                  </button>
+                  ${
+                    canEdit
+                      ? `
+                    <button
+                      onclick="editBooking('${booking.bookingId}')"
+                      class="p-2 text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-xl transition-all duration-200 shadow-sm bg-white"
+                      title="แก้ไข"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      onclick="deleteBooking('${booking.bookingId}')"
+                      class="p-2 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl transition-all duration-200 shadow-sm bg-white"
+                      title="ลบ"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  `
+                      : ""
+                  }
+                </div>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    // 2. Render Grid View (Mobile)
+    if (gridBody) {
+      if (!hasData) {
+        gridBody.innerHTML = `
+          <div class="col-span-full py-12 text-center text-gray-500 bg-white rounded-2xl border-2 border-dashed border-gray-100">
+            <div class="flex flex-col items-center">
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+              <span class="font-medium">ไม่พบข้อมูลการจอง</span>
+            </div>
+          </div>`;
+      } else {
+        gridBody.innerHTML = bookings
+          .map((booking) => {
+            const statusBadge = getStatusBadge(booking.status);
+            const totalPeople = (booking.adults || 0) + (booking.children || 0);
+            const isCancelled = booking.status === "Cancel";
+            const canEdit =
+              !isCancelled &&
+              (currentSession.role === "Owner" ||
+                booking.createdBy === currentSession.username);
+
+            return `
+               <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow relative overflow-hidden group">
+                 <div class="flex justify-between items-start mb-3">
+                   <div>
+                     <span class="text-xs font-bold text-gray-400">#${
+                       booking.bookingId
+                     }</span>
+                     ${
+                       booking.program
+                         ? `<h3 class="font-semibold text-gray-800 line-clamp-1">${booking.program}</h3>`
+                         : '<div class="h-5"></div>'
+                     }
+                     <p class="text-sm text-gray-500 flex items-center mt-1">
+                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        ${booking.location || "-"}
+                     </p>
+                   </div>
+                   <div class="flex-shrink-0 ml-2">${statusBadge}</div>
+                 </div>
+                 
+                 <div class="space-y-2 text-sm text-gray-600 mb-4 border-t border-b border-gray-50 py-3 bg-gray-50/50 -mx-4 px-4">
+                   <div class="flex justify-between">
+                     <span class="text-gray-500">เดินทาง</span> 
+                     <span class="font-medium text-gray-800">${formatDateDisplay(
+                       booking.travelDate
+                     )}</span>
+                   </div>
+                   <div class="flex justify-between">
+                     <span class="text-gray-500">จำนวนคน</span> 
+                     <span class="font-medium text-gray-800">${totalPeople} คน</span>
+                   </div>
+                   <div class="flex justify-between">
+                     <span class="text-gray-500">ยอดรวม</span> 
+                     <span class="font-bold text-purple-600">${formatNumber(
+                       booking.totalAmount
+                     )} ฿</span>
+                   </div>
+                 </div>
+
+                 <div class="flex space-x-2">
+                    <button onclick="viewBooking('${
+                      booking.bookingId
+                    }')" class="flex-1 flex items-center justify-center py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        รายละเอียด
+                    </button>
+                    ${
+                      canEdit
+                        ? `
+                       <button onclick="editBooking('${booking.bookingId}')" class="flex-1 flex items-center justify-center py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors" title="แก้ไข">
+                           <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                           แก้ไข
+                       </button>
+                       <button onclick="deleteBooking('${booking.bookingId}')" class="flex-1 flex items-center justify-center py-2 bg-red-50 text-red-700 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors" title="ลบ">
+                           <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                           ลบ
+                       </button>
+                    `
+                        : ""
+                    }
+                 </div>
+               </div>
+             `;
+          })
+          .join("");
+      }
+    }
+  }
+
+  /**
+   * Filter Bookings
+   */
+  function filterBookings() {
+    const searchText = document
+      .getElementById("searchBooking")
+      .value.toLowerCase();
+    const statusFilter = document.getElementById("filterStatus").value;
+    const dateFrom = document.getElementById("filterDateFrom").value;
+    const dateTo = document.getElementById("filterDateTo").value;
+
+    const filtered = allBookings.filter((booking) => {
+      // Search filter
+      const matchSearch =
+        !searchText ||
+        booking.bookingId.toLowerCase().includes(searchText) ||
+        booking.location.toLowerCase().includes(searchText) ||
+        booking.program.toLowerCase().includes(searchText);
+
+      // Status filter
+      const matchStatus = !statusFilter || booking.status === statusFilter;
+
+      // Date filter
+      const matchDate =
+        (!dateFrom || booking.travelDate >= dateFrom) &&
+        (!dateTo || booking.travelDate <= dateTo);
+
+      return matchSearch && matchStatus && matchDate;
+    });
+
+    // Save filtered result and reset to page 1
+    currentFilteredBookings = filtered;
+    currentBookingPage = 1;
+    renderBookingPagination();
+  }
+
+  // --- Pagination Variables ---
+  var currentBookingPage = 1;
+  var bookingItemsPerPage = 10;
+  var currentFilteredBookings = [];
+
+  /**
+   * Render Pagination & Data
+   */
+  function renderBookingPagination() {
+    const totalItems = currentFilteredBookings.length;
+    const totalPages = Math.ceil(totalItems / bookingItemsPerPage);
+
+    // Validate current page
+    if (currentBookingPage > totalPages) {
+      currentBookingPage = totalPages || 1;
+    }
+    if (currentBookingPage < 1) {
+      currentBookingPage = 1;
+    }
+
+    const startIndex = (currentBookingPage - 1) * bookingItemsPerPage;
+    const endIndex = Math.min(startIndex + bookingItemsPerPage, totalItems);
+    const pageData = currentFilteredBookings.slice(startIndex, endIndex);
+
+    // Render Data
+    renderBookings(pageData);
+
+    // Update Controls
+    updateBookingPaginationControls(
+      totalItems,
+      totalPages,
+      startIndex,
+      endIndex
+    );
+  }
+
+  /**
+   * Update Pagination Controls UI
+   */
+  function updateBookingPaginationControls(
+    totalItems,
+    totalPages,
+    startIndex,
+    endIndex
+  ) {
+    // Text Info
+    const infoText = `หน้า ${currentBookingPage} จาก ${
+      totalPages || 1
+    } (${totalItems} รายการ)`;
+    document.getElementById("bookingPaginationInfo").textContent = infoText;
+    document.getElementById(
+      "bookingMobilePageInfo"
+    ).textContent = `${currentBookingPage} / ${totalPages || 1}`;
+
+    // Buttons Disable State
+    document.getElementById("bookingPrevPageBtn").disabled =
+      currentBookingPage <= 1;
+    document.getElementById("bookingNextPageBtn").disabled =
+      currentBookingPage >= totalPages;
+
+    // Desktop Page Numbers
+    const pageNumbersContainer = document.getElementById("bookingPageNumbers");
+    pageNumbersContainer.innerHTML = "";
+
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+      // Logic to show limited page numbers (First, Last, Current, Surrounding)
+      if (
+        i === 1 ||
+        i === totalPages ||
+        (i >= currentBookingPage - 1 && i <= currentBookingPage + 1)
+      ) {
+        const btn = document.createElement("button");
+        btn.className = `w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+          i === currentBookingPage
+            ? "bg-purple-600 text-white shadow-md shadow-purple-200"
+            : "text-gray-600 hover:bg-gray-100 hover:text-purple-600"
+        }`;
+        btn.textContent = i;
+        btn.onclick = () => changeBookingPage(i);
+        pageNumbersContainer.appendChild(btn);
+      } else if (
+        (i === currentBookingPage - 2 && i > 1) ||
+        (i === currentBookingPage + 2 && i < totalPages)
+      ) {
+        const dots = document.createElement("span");
+        dots.className = "text-gray-400 px-1 select-none";
+        dots.textContent = "...";
+        pageNumbersContainer.appendChild(dots);
+      }
+    }
+  }
+
+  /**
+   * Change Page Action
+   */
+  function changeBookingPage(direction) {
+    const totalItems = currentFilteredBookings.length;
+    const totalPages = Math.ceil(totalItems / bookingItemsPerPage);
+
+    if (direction === "prev" && currentBookingPage > 1) {
+      currentBookingPage--;
+    } else if (direction === "next" && currentBookingPage < totalPages) {
+      currentBookingPage++;
+    } else if (typeof direction === "number") {
+      currentBookingPage = direction;
+    }
+
+    renderBookingPagination();
+  }
+
+  /**
+   * Change Page Size Action
+   */
+  function changeBookingPageSize() {
+    const selector = document.getElementById("bookingItemsPerPageSelect");
+    bookingItemsPerPage = parseInt(selector.value);
+    currentBookingPage = 1; // Reset to page 1
+    renderBookingPagination();
+  }
+
+  /**
+   * Open Create Booking Modal
+   */
+  function openCreateBookingModal() {
+    document.getElementById("modalTitle").textContent = "สร้างการจองใหม่";
+    document.getElementById("modalSubtitle").classList.add("hidden");
+    document.getElementById("editMode").value = "false";
+    document.getElementById("bookingForm").reset();
+    document.getElementById("bookingId").value = "";
+
+    // Set default booking date to today
+    document.getElementById("bookingDate").valueAsDate = new Date();
+
+    // Load locations and programs
+    loadLocationsToSelect();
+    loadProgramsToSelect();
+
+    // Reset total and breakdown
+    document.getElementById("adultSummary").textContent = "ผู้ใหญ่: 0 คน × 0 ฿";
+    document.getElementById("adultTotal").textContent = "0 ฿";
+    document.getElementById("childSummary").textContent = "เด็ก: 0 คน × 0 ฿";
+    document.getElementById("childTotal").textContent = "0 ฿";
+    document.getElementById("discountAmount").textContent = "0 ฿";
+    document.getElementById("totalAmount").textContent = "0 ฿";
+
+    // Clear slip file
+    clearSlipFile();
+
+    // Show modal with animation
+    const modal = document.getElementById("bookingModal");
+    const modalContent = document.getElementById("bookingModalContent");
+
+    modal.classList.remove("hidden");
+
+    // Trigger animation after a small delay
+    setTimeout(() => {
+      modalContent.classList.remove("scale-95", "opacity-0");
+      modalContent.classList.add("scale-100", "opacity-100");
+    }, 10);
+  }
+
+  /**
+   * Close Booking Modal
+   */
+  function closeBookingModal() {
+    const modal = document.getElementById("bookingModal");
+    const modalContent = document.getElementById("bookingModalContent");
+
+    // Animate out
+    modalContent.classList.remove("scale-100", "opacity-100");
+    modalContent.classList.add("scale-95", "opacity-0");
+
+    // Hide modal after animation completes
+    setTimeout(() => {
+      modal.classList.add("hidden");
+    }, 300);
+  }
+
+  /**
+   * Load Locations to Select
+   */
+  function loadLocationsToSelect() {
+    const select = document.getElementById("location");
+    select.innerHTML = '<option value="">เลือกสถานที่</option>';
+
+    allLocations.forEach((loc) => {
+      const option = document.createElement("option");
+      option.value = loc.locationName;
+      option.textContent = loc.locationName;
+      select.appendChild(option);
+    });
+  }
+
+  /**
+   * Load Programs to Select
+   */
+  function loadProgramsToSelect() {
+    const select = document.getElementById("program");
+    select.innerHTML = '<option value="">เลือกโปรแกรม</option>';
+
+    allPrograms.forEach((prog) => {
+      const option = document.createElement("option");
+      option.value = prog.programId;
+      option.textContent = prog.programId;
+      option.dataset.adultPrice = prog.adultPrice;
+      option.dataset.childPrice = prog.childPrice;
+      select.appendChild(option);
+    });
+  }
+
+  /**
+   * Update Prices when Program is selected
+   */
+  function updatePrices() {
+    const select = document.getElementById("program");
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (selectedOption.value) {
+      document.getElementById("adultPrice").value =
+        selectedOption.dataset.adultPrice || 0;
+      document.getElementById("childPrice").value =
+        selectedOption.dataset.childPrice || 0;
+      calculateTotal();
+    }
+  }
+
+  /**
+   * Calculate Total Amount
+   */
+  function calculateTotal() {
+    const adults = parseInt(document.getElementById("adults").value) || 0;
+    const children = parseInt(document.getElementById("children").value) || 0;
+    const adultPrice =
+      parseFloat(document.getElementById("adultPrice").value) || 0;
+    const childPrice =
+      parseFloat(document.getElementById("childPrice").value) || 0;
+    const discount = parseFloat(document.getElementById("discount").value) || 0;
+
+    // Calculate subtotals
+    const adultSubtotal = adults * adultPrice;
+    const childSubtotal = children * childPrice;
+    const total = adultSubtotal + childSubtotal - discount;
+
+    // Update adult summary
+    document.getElementById(
+      "adultSummary"
+    ).textContent = `ผู้ใหญ่: ${adults} คน × ${formatNumber(adultPrice)} ฿`;
+    document.getElementById("adultTotal").textContent =
+      formatNumber(adultSubtotal) + " ฿";
+
+    // Update child summary
+    document.getElementById(
+      "childSummary"
+    ).textContent = `เด็ก: ${children} คน × ${formatNumber(childPrice)} ฿`;
+    document.getElementById("childTotal").textContent =
+      formatNumber(childSubtotal) + " ฿";
+
+    // Update discount
+    document.getElementById("discountAmount").textContent =
+      discount > 0 ? `- ${formatNumber(discount)} ฿` : "0 ฿";
+
+    // Update total
+    document.getElementById("totalAmount").textContent =
+      formatNumber(total) + " ฿";
+  }
+
+  /**
+   * Save Booking (Create or Update)
+   */
+  document
+    .getElementById("bookingForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const session = getSessionFromStorage();
+      if (!session || !session.sessionToken) {
+        showToast("กรุณาเข้าสู่ระบบใหม่", "error");
+        return;
+      }
+
+      const editMode = document.getElementById("editMode").value === "true";
+      const bookingId = document.getElementById("bookingId").value;
+
+      // Get form data
+      const bookingData = {
+        bookingDate: document.getElementById("bookingDate").value,
+        travelDate: document.getElementById("travelDate").value,
+        location: document.getElementById("location").value,
+        program: document.getElementById("program").value, // ใช้ value (รหัสโปรแกรม) แทน text
+        adults: parseInt(document.getElementById("adults").value) || 0,
+        children: parseInt(document.getElementById("children").value) || 0,
+        adultPrice:
+          parseFloat(document.getElementById("adultPrice").value) || 0,
+        childPrice:
+          parseFloat(document.getElementById("childPrice").value) || 0,
+        discount: parseFloat(document.getElementById("discount").value) || 0,
+        agent: document.getElementById("agent").value,
+        notes: document.getElementById("notes").value,
+      };
+
+      // Show loading
+      const btn = document.getElementById("saveBookingBtn");
+      const cancelBtn = document.getElementById("cancelBookingBtn");
+      const spinner = document.getElementById("saveBtnSpinner");
+      const btnText = document.getElementById("saveBtnText");
+
+      btn.disabled = true;
+      cancelBtn.disabled = true; // Disable cancel button
+      spinner.classList.remove("hidden");
+      btnText.textContent = editMode ? "กำลังบันทึก..." : "กำลังสร้าง...";
+
+      // Call backend
+      if (editMode) {
+        google.script.run
+          .withSuccessHandler(async function (response) {
+            if (response.success) {
+              // Upload slip if a new file was selected
+              if (selectedSlipFile) {
+                btnText.textContent = "กำลังอัพโหลดสลิป...";
+                try {
+                  const slipUrl = await uploadSlipFile(bookingId);
+
+                  if (slipUrl) {
+                    // Update booking with new slip URL
+                    const updateRes = await new Promise((resolve, reject) => {
+                      google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .updateBookingSlip(
+                          session.sessionToken,
+                          bookingId,
+                          slipUrl
+                        );
+                    });
+
+                    if (!updateRes || !updateRes.success) {
+                      console.warn("Update booking slip failed:", updateRes);
+                      showToast(
+                        "อัพโหลดไฟล์สำเร็จ แต่บันทึกลงฐานข้อมูลไม่สำเร็จ: " +
+                          (updateRes?.message || "Unknown error"),
+                        "warning"
+                      );
+                    }
+                  } else {
+                    showToast("ไม่ได้รับ URL หลังจากอัพโหลดไฟล์", "warning");
+                  }
+                } catch (error) {
+                  console.error("Slip process error:", error);
+                  showToast(
+                    "แก้ไขการจองสำเร็จ แต่เกิดข้อผิดพลาดกับสลิป: " +
+                      error.message,
+                    "warning"
+                  );
+                }
+              }
+
+              btn.disabled = false;
+              cancelBtn.disabled = false;
+              spinner.classList.add("hidden");
+              btnText.textContent = "บันทึก";
+
+              showToast("แก้ไขการจองสำเร็จ", "success");
+              closeBookingModal();
+              loadBookings();
+            } else {
+              btn.disabled = false;
+              cancelBtn.disabled = false;
+              spinner.classList.add("hidden");
+              btnText.textContent = "บันทึก";
+              showToast(response.message || "ไม่สามารถแก้ไขได้", "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            btn.disabled = false;
+            cancelBtn.disabled = false;
+            spinner.classList.add("hidden");
+            btnText.textContent = "บันทึก";
+            showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+          })
+          .updateBooking(session.sessionToken, bookingId, bookingData);
+      } else {
+        google.script.run
+          .withSuccessHandler(async function (response) {
+            if (response.success) {
+              const createdBookingId = response.data.bookingId;
+
+              // Upload slip if selected
+              if (selectedSlipFile) {
+                btnText.textContent = "กำลังอัพโหลดสลิป...";
+                try {
+                  const slipUrl = await uploadSlipFile(createdBookingId);
+                  if (slipUrl) {
+                    // Update booking with slip URL
+                    await new Promise((resolve, reject) => {
+                      google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .updateBookingSlip(
+                          session.sessionToken,
+                          createdBookingId,
+                          slipUrl
+                        );
+                    });
+                  }
+                } catch (error) {
+                  console.error("Slip upload error:", error);
+                  showToast(
+                    "สร้างการจองสำเร็จ แต่อัพโหลดสลิปไม่สำเร็จ",
+                    "warning"
+                  );
+                }
+              }
+
+              btn.disabled = false;
+              cancelBtn.disabled = false; // Re-enable cancel button
+              spinner.classList.add("hidden");
+              btnText.textContent = "บันทึก";
+
+              showToast("สร้างการจองสำเร็จ", "success");
+              closeBookingModal();
+              loadBookings();
+            } else {
+              btn.disabled = false;
+              cancelBtn.disabled = false; // Re-enable cancel button
+              spinner.classList.add("hidden");
+              btnText.textContent = "บันทึก";
+              showToast(response.message || "ไม่สามารถสร้างได้", "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            btn.disabled = false;
+            cancelBtn.disabled = false; // Re-enable cancel button
+            spinner.classList.add("hidden");
+            btnText.textContent = "บันทึก";
+            showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+          })
+          .createBooking(session.sessionToken, bookingData);
+      }
+    });
+
+  /**
+   * Edit Booking
+   */
+  function editBooking(bookingId) {
+    const booking = allBookings.find((b) => b.bookingId === bookingId);
+    if (!booking) {
+      showToast("ไม่พบข้อมูลการจอง", "error");
+      return;
+    }
+
+    // Set form values
+    document.getElementById("modalTitle").textContent = "แก้ไขการจอง";
+
+    // Show booking ID subtitle
+    const subtitle = document.getElementById("modalSubtitle");
+    subtitle.textContent = "รหัสการจอง: " + booking.bookingId;
+    subtitle.classList.remove("hidden");
+    document.getElementById("editMode").value = "true";
+    document.getElementById("bookingId").value = booking.bookingId;
+    document.getElementById("bookingDate").value = booking.bookingDate;
+    document.getElementById("travelDate").value = booking.travelDate;
+
+    // Load locations and programs first (ใช้ข้อมูลที่มีอยู่แล้วใน allLocations และ allPrograms)
+    loadLocationsToSelect();
+    loadProgramsToSelect();
+
+    // Set location and program after options are loaded
+    document.getElementById("location").value = booking.location;
+    document.getElementById("program").value = booking.program;
+
+    document.getElementById("adults").value = booking.adults;
+    document.getElementById("children").value = booking.children;
+    document.getElementById("adultPrice").value = booking.adultPrice;
+    document.getElementById("childPrice").value = booking.childPrice;
+    document.getElementById("discount").value = booking.discount;
+    document.getElementById("agent").value = booking.agent || "";
+    document.getElementById("notes").value = booking.notes || "";
+
+    // Handle existing slip
+    clearSlipFile(); // Clear any previous selection
+
+    console.log("Booking data:", booking); // Debug
+    console.log("Slip URL:", booking.slipUrl); // Debug
+
+    if (booking.slipUrl && booking.slipUrl.trim() !== "") {
+      // Show existing slip
+      const slipUploadArea = document.getElementById("slipUploadArea");
+      const slipPreview = document.getElementById("slipPreview");
+
+      console.log("Showing existing slip preview"); // Debug
+
+      slipUploadArea.classList.add("hidden");
+      slipPreview.classList.remove("hidden");
+
+      document.getElementById("slipFileName").textContent = "สลิปเดิม";
+      document.getElementById("slipFileSize").textContent =
+        "ดูรายละเอียดด้านล่าง";
+
+      const viewLink = document.getElementById("slipViewLink");
+      viewLink.href = booking.slipUrl;
+      viewLink.classList.remove("hidden");
+
+      document.getElementById("slipUrl").value = booking.slipUrl;
+    } else {
+      console.log("No slip URL or empty slip URL"); // Debug
+    }
+
+    calculateTotal();
+
+    // Show modal with animation
+    const modal = document.getElementById("bookingModal");
+    const modalContent = document.getElementById("bookingModalContent");
+
+    modal.classList.remove("hidden");
+
+    // Trigger animation after a small delay
+    setTimeout(() => {
+      modalContent.classList.remove("scale-95", "opacity-0");
+      modalContent.classList.add("scale-100", "opacity-100");
+    }, 10);
+  }
+
+  /**
+   * View Booking Details
+   */
+  function viewBooking(bookingId) {
+    const booking = allBookings.find((b) => b.bookingId === bookingId);
+    if (!booking) {
+      showToast("ไม่พบข้อมูลการจอง", "error");
+      return;
+    }
+
+    document.getElementById("viewBookingId").textContent =
+      "รหัสการจอง: " + booking.bookingId;
+
+    const content = `
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-sm text-gray-500">วันที่จอง</p>
+            <p class="font-semibold">${formatDateDisplay(
+              booking.bookingDate
+            )}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">วันที่เดินทาง</p>
+            <p class="font-semibold">${formatDateDisplay(
+              booking.travelDate
+            )}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">สถานที่</p>
+            <p class="font-semibold">${booking.location}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">โปรแกรม</p>
+            <p class="font-semibold">${booking.program}</p>
+          </div>
+
+          <div>
+            <p class="text-sm text-gray-500">ผู้ใหญ่</p>
+            <p class="font-semibold">${booking.adults} คน × ${formatNumber(
+      booking.adultPrice
+    )} ฿</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">เด็ก</p>
+            <p class="font-semibold">${booking.children} คน × ${formatNumber(
+      booking.childPrice
+    )} ฿</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">ส่วนลด</p>
+            <p class="font-semibold">${formatNumber(booking.discount)} ฿</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">ยอดรวม</p>
+            <p class="font-semibold text-purple-600 text-xl">${formatNumber(
+              booking.totalAmount
+            )} ฿</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">สถานะ</p>
+            <p>${getStatusBadge(booking.status)}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Agent</p>
+            <p class="font-semibold">${booking.agent || "-"}</p>
+          </div>
+          <div class="col-span-2">
+            <p class="text-sm text-gray-500">หมายเหตุ</p>
+            <p class="font-semibold">${booking.notes || "-"}</p>
+          </div>
+          <div class="col-span-2">
+            <p class="text-sm text-gray-500">สลิปการชำระเงิน</p>
+            ${
+              booking.slipUrl
+                ? `
+              <a href="${booking.slipUrl}" target="_blank" class="inline-flex items-center space-x-2 text-purple-600 hover:text-purple-800 font-semibold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <span>ดูสลิป</span>
+              </a>
+            `
+                : `<p class="text-gray-400">ยังไม่มีสลิป</p>`
+            }
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">ผู้สร้าง</p>
+            <p class="font-semibold">${booking.createdBy}</p>
+
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">วันที่สร้าง</p>
+            <p class="font-semibold">${formatDateDisplay(booking.createdAt)}</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("viewBookingContent").innerHTML = content;
+
+    // Show modal with animation
+    const modal = document.getElementById("viewBookingModal");
+    const modalContent = document.getElementById("viewBookingModalContent");
+
+    modal.classList.remove("hidden");
+
+    // Trigger animation after a small delay
+    setTimeout(() => {
+      modalContent.classList.remove("scale-95", "opacity-0");
+      modalContent.classList.add("scale-100", "opacity-100");
+    }, 10);
+  }
+
+  /**
+   * Close View Booking Modal
+   */
+  function closeViewBookingModal() {
+    const modal = document.getElementById("viewBookingModal");
+    const modalContent = document.getElementById("viewBookingModalContent");
+
+    // Animate out
+    modalContent.classList.remove("scale-100", "opacity-100");
+    modalContent.classList.add("scale-95", "opacity-0");
+
+    // Hide modal after animation completes
+    setTimeout(() => {
+      modal.classList.add("hidden");
+    }, 300);
+  }
+
+  /**
+   * Delete Booking
+   */
+  function deleteBooking(bookingId) {
+    openBookingDeleteModal(bookingId);
+  }
+
+  /**
+   * Get Status Badge
+   */
+  function getStatusBadge(status) {
+    const badges = {
+      Pending: '<span class="badge badge-warning">Pending</span>',
+      Confirm: '<span class="badge badge-info">Confirm</span>',
+      Complete: '<span class="badge badge-success">Complete</span>',
+      Cancel: '<span class="badge badge-danger">Cancel</span>',
+    };
+    return badges[status] || status;
+  }
+
+  /**
+   * Format Number
+   */
+  function formatNumber(num) {
+    return new Intl.NumberFormat("th-TH").format(num);
+  }
+
+  /**
+   * Format Date for Display
+   */
+  function formatDateDisplay(dateStr) {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("th-TH", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  /**
+   * Handle Slip File Select
+   */
+  var selectedSlipFile = null;
+
+  function handleSlipFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      showToast("ไฟล์มีขนาดใหญ่เกิน 5MB", "error");
+      event.target.value = "";
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "application/pdf",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      showToast("รองรับเฉพาะไฟล์ภาพ (JPG, PNG) หรือ PDF เท่านั้น", "error");
+      event.target.value = "";
+      return;
+    }
+
+    // Store file
+    selectedSlipFile = file;
+
+    // Show preview
+    document.getElementById("slipUploadArea").classList.add("hidden");
+    document.getElementById("slipPreview").classList.remove("hidden");
+    document.getElementById("slipFileName").textContent = file.name;
+    document.getElementById("slipFileSize").textContent = formatFileSize(
+      file.size
+    );
+
+    // Hide view link for new files (not uploaded yet)
+    document.getElementById("slipViewLink").classList.add("hidden");
+  }
+
+  /**
+   * Clear Slip File
+   */
+  function clearSlipFile() {
+    selectedSlipFile = null;
+    document.getElementById("slipFile").value = "";
+    document.getElementById("slipUploadArea").classList.remove("hidden");
+    document.getElementById("slipPreview").classList.add("hidden");
+    document.getElementById("slipUrl").value = "";
+
+    // Hide view link
+    const viewLink = document.getElementById("slipViewLink");
+    viewLink.href = "#";
+    viewLink.classList.add("hidden");
+  }
+
+  /**
+   * Format File Size
+   */
+  function formatFileSize(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  }
+
+  /**
+   * Upload Slip to Google Drive
+   */
+  function uploadSlipFile(bookingId) {
+    return new Promise((resolve, reject) => {
+      if (!selectedSlipFile) {
+        resolve(null);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const base64Data = e.target.result.split(",")[1]; // Remove data:image/...;base64,
+
+        const session = getSessionFromStorage();
+        // Get booking date directly from inputs (assuming modal is open and has values)
+        // If uploadSlipFile is used in context where inputs might not be populated or different context, consider passing date as arg.
+        // Usually upload happens when saving form, so inputs should have values.
+        const bookingDate = document.getElementById("bookingDate").value;
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              resolve(response.data.url);
+            } else {
+              reject(new Error(response.message));
+            }
+          })
+          .withFailureHandler(function (error) {
+            reject(error);
+          })
+          .uploadSlip(
+            session.sessionToken,
+            bookingId,
+            bookingDate,
+            selectedSlipFile.name,
+            base64Data,
+            selectedSlipFile.type
+          );
+      };
+      reader.onerror = function (error) {
+        reject(error);
+      };
+      reader.readAsDataURL(selectedSlipFile);
+    });
+  }
+
+  // Initialize when page loads
+  if (typeof window.loadBookings === "undefined") {
+    window.loadBookings = loadBookings;
+  }
+</script>

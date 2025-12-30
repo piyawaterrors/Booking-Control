@@ -334,32 +334,33 @@
             </select>
           </div>
         </div>
-
-        <!-- Action Buttons -->
-        <div
-          class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100"
-        >
-          <button
-            type="button"
-            id="locCancelBtn"
-            onclick="closeLocModal()"
-            class="flex-1 px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
-          >
-            ยกเลิก
-          </button>
-          <button
-            type="submit"
-            id="locSubmitBtn"
-            class="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all font-bold flex items-center justify-center space-x-2 shadow-lg shadow-purple-200"
-          >
-            <span
-              id="locSubmitSpinner"
-              class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-            ></span>
-            <span id="locSubmitBtnText">บันทึกข้อมูล</span>
-          </button>
-        </div>
       </form>
+    </div>
+
+    <!-- Action Buttons -->
+    <div
+      class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200"
+    >
+      <button
+        type="button"
+        id="locCancelBtn"
+        onclick="closeLocModal()"
+        class="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+      >
+        ยกเลิก
+      </button>
+      <button
+        type="submit"
+        form="locForm"
+        id="locSubmitBtn"
+        class="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl hover:shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 font-medium flex items-center space-x-2"
+      >
+        <span
+          id="locSubmitSpinner"
+          class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+        ></span>
+        <span id="locSubmitBtnText">บันทึก</span>
+      </button>
     </div>
   </div>
 </div>
@@ -523,6 +524,12 @@
     if (tbody) tbody.innerHTML = loadingHtml;
     if (gbody) gbody.innerHTML = gridLoadingHtml;
 
+    const session = getSessionFromStorage();
+    if (!session || !session.sessionToken) {
+      showToast("กรุณาเข้าสู่ระบบใหม่", "error");
+      return;
+    }
+
     google.script.run
       .withSuccessHandler(function (response) {
         if (response.success) {
@@ -537,7 +544,7 @@
       .withFailureHandler(function (error) {
         showToast("เกิดข้อผิดพลาด: " + error.message, "error");
       })
-      .getAllLocations();
+      .getAllLocations(session.sessionToken);
   }
 
   /**

@@ -933,44 +933,6 @@ function verifyPasswordHash() {
   };
 }
 
-// ========================================
-// USER MANAGEMENT (Owner Only)
-// ========================================
-
-/**
- * Get All Users
- */
-function getAllUsers() {
-  if (!hasRole(CONFIG.ROLES.OWNER)) {
-    return { success: false, message: "ไม่มีสิทธิ์เข้าถึง" };
-  }
-
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.USERS);
-    const data = sheet.getDataRange().getValues();
-    const users = [];
-
-    // Skip header row
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      users.push({
-        userId: row[0],
-        email: row[1],
-        username: row[2],
-        fullName: row[4],
-        role: row[5],
-        status: row[6],
-        createdAt: row[7],
-        updatedAt: row[8],
-      });
-    }
-
-    return { success: true, data: users };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
-
 /**
  * Create New User
  */
@@ -1126,55 +1088,6 @@ function deleteUser(userId) {
 // ========================================
 // BOOKING MANAGEMENT
 // ========================================
-
-/**
- * Get All Bookings
- */
-function getAllBookings(filters = {}) {
-  if (!hasRole([CONFIG.ROLES.OP, CONFIG.ROLES.OWNER, CONFIG.ROLES.AR_AP])) {
-    return { success: false, message: "ไม่มีสิทธิ์เข้าถึง" };
-  }
-
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
-    const data = sheet.getDataRange().getValues();
-    const bookings = [];
-    const session = getSession();
-
-    // Skip header row
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      bookings.push({
-        rowIndex: i + 1,
-        bookingId: row[0],
-        bookingDate: row[1],
-        travelDate: row[2],
-        location: row[3],
-        program: row[4],
-        adults: row[5],
-        children: row[6],
-        adultPrice: row[7],
-        childPrice: row[8],
-        discount: row[9],
-        status: row[10],
-        slipUrl: row[11],
-        agent: row[12],
-        note: row[13],
-        totalAmount: row[14],
-        createdBy: row[15],
-        createdAt: row[16],
-        updatedBy: row[17],
-        updatedAt: row[18],
-        canEdit:
-          session.role === CONFIG.ROLES.OWNER || row[15] === session.username,
-      });
-    }
-
-    return { success: true, data: bookings };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
 
 /**
  * Create New Booking
@@ -1393,29 +1306,6 @@ function logStatusChange(
 /**
  * Upload Slip to Google Drive
  */
-function uploadSlip(bookingId, fileBlob, fileName) {
-  try {
-    const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
-    const file = folder.createFile(fileBlob);
-    file.setName(`${bookingId}_${fileName}`);
-
-    // Make file accessible
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
-    const fileUrl = file.getUrl();
-
-    // Update booking with slip URL
-    updateBooking(bookingId, { slipUrl: fileUrl });
-
-    return {
-      success: true,
-      message: "อัพโหลดสลิปสำเร็จ",
-      data: { url: fileUrl },
-    };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
 
 // ========================================
 // LOCATIONS MANAGEMENT
@@ -1424,8 +1314,17 @@ function uploadSlip(bookingId, fileBlob, fileName) {
 /**
  * Get All Locations
  */
-function getAllLocations() {
+function getAllLocations(sessionToken) {
   try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
     const sheet = getSheet(CONFIG.SHEETS.LOCATIONS);
     const data = sheet.getDataRange().getValues();
 
@@ -1606,8 +1505,17 @@ function deleteLocation(locationId) {
 /**
  * Get All Programs
  */
-function getAllPrograms() {
+function getAllPrograms(sessionToken) {
   try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
     const sheet = getSheet(CONFIG.SHEETS.PROGRAMS);
     if (!sheet) {
       return {
@@ -1949,21 +1857,12 @@ function getDashboardData() {
  */
 function getAllUsers(sessionToken) {
   try {
-    // Validate session and check Owner role
     const session = validateSession(sessionToken);
 
     if (!session) {
       return {
         success: false,
         message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
-      };
-    }
-
-    // Check if user is Owner
-    if (session.role !== "Owner") {
-      return {
-        success: false,
-        message: `คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้ (Role: ${session.role})`,
       };
     }
 
@@ -2322,4 +2221,690 @@ function generateUserId() {
   const lastId = sheet.getRange(lastRow, 1).getValue();
   const number = parseInt(lastId.replace("USR", "")) + 1;
   return "USR" + number.toString().padStart(3, "0");
+}
+
+// ========================================
+// BOOKING MANAGEMENT FUNCTIONS
+// ========================================
+
+/**
+ * Generate Booking ID
+ */
+function generateBookingId() {
+  const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+  const lastRow = sheet.getLastRow();
+
+  // If only header exists, start with BK001
+  if (lastRow <= 1) {
+    return "BK001";
+  }
+
+  // Get all booking IDs and find the highest number
+  const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  let maxNumber = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    const id = data[i][0];
+    if (id && typeof id === "string" && id.startsWith("BK")) {
+      const numStr = id.replace("BK", "");
+      const num = parseInt(numStr);
+      if (!isNaN(num) && num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+
+  // Generate next ID
+  const nextNumber = maxNumber + 1;
+  return "BK" + nextNumber.toString().padStart(3, "0");
+}
+
+/**
+ * Get All Bookings
+ * ดึงข้อมูลการจองทั้งหมด
+ * OP: ดูได้ทั้งหมด แต่แก้ไขได้เฉพาะที่ตนเองสร้าง
+ * Owner: ดูและแก้ไขได้ทั้งหมด
+ */
+function getAllBookings(sessionToken) {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    // Check permissions
+    // Owner, Admin, AR_AP can view all. Others can view only their own.
+    const allowedRoles = [
+      CONFIG.ROLES.OP,
+      CONFIG.ROLES.OWNER,
+      CONFIG.ROLES.ADMIN,
+      CONFIG.ROLES.AR_AP,
+      CONFIG.ROLES.SALE,
+      CONFIG.ROLES.COST,
+    ];
+
+    if (!allowedRoles.includes(session.role)) {
+      return {
+        success: false,
+        message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้",
+      };
+    }
+
+    const viewingAllRoles = [
+      CONFIG.ROLES.OWNER,
+      CONFIG.ROLES.ADMIN,
+      CONFIG.ROLES.AR_AP,
+    ];
+    const canViewAll = viewingAllRoles.includes(session.role);
+    const currentUser = session.username;
+
+    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+    const data = sheet.getDataRange().getValues();
+
+    const bookings = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const createdBy = row[15];
+
+      // Filter data: If not in privileged roles, only show own bookings
+      if (!canViewAll && createdBy !== currentUser) {
+        continue;
+      }
+
+      bookings.push({
+        bookingId: row[0],
+        bookingDate: formatDate(row[1]),
+        travelDate: formatDate(row[2]),
+        location: row[3],
+        program: row[4],
+        adults: row[5],
+        children: row[6],
+        adultPrice: row[7],
+        childPrice: row[8],
+        discount: row[9],
+        status: row[10],
+        slipUrl: row[11],
+        agent: row[12],
+        notes: row[13],
+        totalAmount: row[14],
+        createdBy: row[15],
+        createdAt: formatDate(row[16], "yyyy-MM-dd HH:mm:ss"),
+        updatedBy: row[17],
+        updatedAt: formatDate(row[18], "yyyy-MM-dd HH:mm:ss"),
+      });
+    }
+
+    return {
+      success: true,
+      data: bookings,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาด: " + error.message,
+    };
+  }
+}
+
+/**
+ * Get Booking by ID
+ */
+function getBookingById(sessionToken, bookingId) {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0] === bookingId) {
+        return {
+          success: true,
+          data: {
+            bookingId: row[0],
+            bookingDate: formatDate(row[1]),
+            travelDate: formatDate(row[2]),
+            location: row[3],
+            program: row[4],
+            adults: row[5],
+            children: row[6],
+            adultPrice: row[7],
+            childPrice: row[8],
+            discount: row[9],
+            status: row[10],
+            slipUrl: row[11],
+            agent: row[12],
+            notes: row[13],
+            totalAmount: row[14],
+            createdBy: row[15],
+            createdAt: formatDate(row[16], "yyyy-MM-dd HH:mm:ss"),
+            updatedBy: row[17],
+            updatedAt: formatDate(row[18], "yyyy-MM-dd HH:mm:ss"),
+          },
+        };
+      }
+    }
+
+    return {
+      success: false,
+      message: "ไม่พบข้อมูลการจอง",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาด: " + error.message,
+    };
+  }
+}
+
+/**
+ * Create Booking
+ * สร้างการจองใหม่ (OP, Owner)
+ */
+function createBooking(sessionToken, bookingData) {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    // Check permissions (OP and Owner can create)
+    if (
+      session.role !== CONFIG.ROLES.OP &&
+      session.role !== CONFIG.ROLES.OWNER
+    ) {
+      return {
+        success: false,
+        message: "คุณไม่มีสิทธิ์สร้างการจอง",
+      };
+    }
+
+    // Validate required fields
+    if (
+      !bookingData.bookingDate ||
+      !bookingData.travelDate ||
+      !bookingData.location ||
+      !bookingData.program
+    ) {
+      return {
+        success: false,
+        message: "กรุณากรอกข้อมูลให้ครบถ้วน",
+      };
+    }
+
+    // Calculate total amount
+    const totalAmount =
+      (bookingData.adults || 0) * (bookingData.adultPrice || 0) +
+      (bookingData.children || 0) * (bookingData.childPrice || 0) -
+      (bookingData.discount || 0);
+
+    // Generate booking ID
+    const bookingId = generateBookingId();
+    const now = getCurrentTimestamp();
+
+    // Prepare data
+    const newRow = [
+      bookingId,
+      bookingData.bookingDate,
+      bookingData.travelDate,
+      bookingData.location,
+      bookingData.program,
+      bookingData.adults || 0,
+      bookingData.children || 0,
+      bookingData.adultPrice || 0,
+      bookingData.childPrice || 0,
+      bookingData.discount || 0,
+      CONFIG.STATUS.CONFIRM, // Default status (ไม่มีสลิป = Confirm เลย)
+      "", // Slip URL (empty for now)
+      bookingData.agent || "",
+      bookingData.notes || "",
+      totalAmount,
+      session.username, // Created by
+      now, // Created at
+      session.username, // Updated by
+      now, // Updated at
+    ];
+
+    // Append to sheet
+    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      message: "สร้างการจองสำเร็จ",
+      data: { bookingId: bookingId },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาด: " + error.message,
+    };
+  }
+}
+
+/**
+ * Update Booking
+ * แก้ไขการจอง
+ * OP: แก้ไขได้เฉพาะที่ตนเองสร้าง
+ * Owner: แก้ไขได้ทั้งหมด
+ */
+function updateBooking(sessionToken, bookingId, bookingData) {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+    const data = sheet.getDataRange().getValues();
+
+    // Find booking
+    let rowIndex = -1;
+    let createdBy = null;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === bookingId) {
+        rowIndex = i + 1; // Sheet row is 1-indexed
+        createdBy = data[i][15]; // Column P: ผู้สร้าง
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        message: "ไม่พบข้อมูลการจอง",
+      };
+    }
+
+    // Check permissions
+    // OP can only edit their own bookings, Owner can edit all
+    if (session.role === CONFIG.ROLES.OP && createdBy !== session.username) {
+      return {
+        success: false,
+        message:
+          "คุณไม่มีสิทธิ์แก้ไขการจองนี้ (สามารถแก้ไขได้เฉพาะที่ตนเองสร้าง)",
+      };
+    }
+
+    if (
+      session.role !== CONFIG.ROLES.OP &&
+      session.role !== CONFIG.ROLES.OWNER
+    ) {
+      return {
+        success: false,
+        message: "คุณไม่มีสิทธิ์แก้ไขการจอง",
+      };
+    }
+
+    // Calculate total amount
+    const totalAmount =
+      (bookingData.adults || 0) * (bookingData.adultPrice || 0) +
+      (bookingData.children || 0) * (bookingData.childPrice || 0) -
+      (bookingData.discount || 0);
+
+    const now = getCurrentTimestamp();
+
+    // Update data (keep existing status and slip URL)
+    sheet.getRange(rowIndex, 2).setValue(bookingData.bookingDate);
+    sheet.getRange(rowIndex, 3).setValue(bookingData.travelDate);
+    sheet.getRange(rowIndex, 4).setValue(bookingData.location);
+    sheet.getRange(rowIndex, 5).setValue(bookingData.program);
+    sheet.getRange(rowIndex, 6).setValue(bookingData.adults || 0);
+    sheet.getRange(rowIndex, 7).setValue(bookingData.children || 0);
+    sheet.getRange(rowIndex, 8).setValue(bookingData.adultPrice || 0);
+    sheet.getRange(rowIndex, 9).setValue(bookingData.childPrice || 0);
+    sheet.getRange(rowIndex, 10).setValue(bookingData.discount || 0);
+    sheet.getRange(rowIndex, 13).setValue(bookingData.agent || "");
+    sheet.getRange(rowIndex, 14).setValue(bookingData.notes || "");
+    sheet.getRange(rowIndex, 15).setValue(totalAmount);
+    sheet.getRange(rowIndex, 18).setValue(session.username); // Updated by
+    sheet.getRange(rowIndex, 19).setValue(now); // Updated at
+
+    return {
+      success: true,
+      message: "แก้ไขการจองสำเร็จ",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาด: " + error.message,
+    };
+  }
+}
+
+/**
+ * Delete Booking
+ * ลบการจอง (Soft delete - เปลี่ยนสถานะเป็น Cancel)
+ * OP: ลบได้เฉพาะที่ตนเองสร้าง
+ * Owner: ลบได้ทั้งหมด
+ */
+function deleteBooking(sessionToken, bookingId, reason) {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+    const data = sheet.getDataRange().getValues();
+
+    // Find booking
+    let rowIndex = -1;
+    let createdBy = null;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === bookingId) {
+        rowIndex = i + 1;
+        createdBy = data[i][15]; // Column P: ผู้สร้าง
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        message: "ไม่พบข้อมูลการจอง",
+      };
+    }
+
+    // Check permissions
+    if (session.role === CONFIG.ROLES.OP && createdBy !== session.username) {
+      return {
+        success: false,
+        message: "คุณไม่มีสิทธิ์ลบการจองนี้ (สามารถลบได้เฉพาะที่ตนเองสร้าง)",
+      };
+    }
+
+    if (
+      session.role !== CONFIG.ROLES.OP &&
+      session.role !== CONFIG.ROLES.OWNER
+    ) {
+      return {
+        success: false,
+        message: "คุณไม่มีสิทธิ์ลบการจอง",
+      };
+    }
+
+    // Soft delete - change status to Cancel
+    const now = getCurrentTimestamp();
+    const oldStatus = data[rowIndex - 1][10]; // Column K (Index 10)
+
+    sheet.getRange(rowIndex, 11).setValue(CONFIG.STATUS.CANCEL); // Status -> Cancel
+
+    sheet.getRange(rowIndex, 18).setValue(session.username); // Updated By
+    sheet.getRange(rowIndex, 19).setValue(now); // Updated At
+
+    // Log to History
+    try {
+      const historySheet = getSheet(CONFIG.SHEETS.BOOKING_STATUS_HISTORY);
+      const historyId =
+        "HIS" + Utilities.formatDate(new Date(), "GMT+7", "yyyyMMddHHmmssSSS");
+
+      historySheet.appendRow([
+        historyId,
+        bookingId,
+        oldStatus,
+        CONFIG.STATUS.CANCEL,
+        session.username,
+        now,
+        reason,
+        "", // No Slip URL for deletion
+      ]);
+    } catch (e) {
+      Logger.log("Error logging history: " + e.toString());
+    }
+
+    return {
+      success: true,
+      message: "ยกเลิกการจองสำเร็จ",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาด: " + error.message,
+    };
+  }
+}
+
+/**
+ * Update Booking Status
+ * เปลี่ยนสถานะการจอง (สำหรับ AR/AP, Owner)
+ */
+function updateBookingStatus(sessionToken, bookingId, newStatus, reason = "") {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    // Check permissions (AR_AP and Owner can change status)
+    if (
+      session.role !== CONFIG.ROLES.AR_AP &&
+      session.role !== CONFIG.ROLES.OWNER
+    ) {
+      return {
+        success: false,
+        message: "คุณไม่มีสิทธิ์เปลี่ยนสถานะการจอง",
+      };
+    }
+
+    // Validate status
+    const validStatuses = [
+      CONFIG.STATUS.PENDING,
+      CONFIG.STATUS.CONFIRM,
+      CONFIG.STATUS.COMPLETE,
+      CONFIG.STATUS.CANCEL,
+    ];
+    if (!validStatuses.includes(newStatus)) {
+      return {
+        success: false,
+        message: "สถานะไม่ถูกต้อง",
+      };
+    }
+
+    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+    const data = sheet.getDataRange().getValues();
+
+    // Find booking
+    let rowIndex = -1;
+    let oldStatus = null;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === bookingId) {
+        rowIndex = i + 1;
+        oldStatus = data[i][10]; // Column K: สถานะ
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        message: "ไม่พบข้อมูลการจอง",
+      };
+    }
+
+    // Update status
+    const now = getCurrentTimestamp();
+    sheet.getRange(rowIndex, 11).setValue(newStatus);
+    sheet.getRange(rowIndex, 18).setValue(session.username);
+    sheet.getRange(rowIndex, 19).setValue(now);
+
+    // Log status change in history
+    const historySheet = getSheet(CONFIG.SHEETS.BOOKING_STATUS_HISTORY);
+    const historyId = generateUniqueId("HST");
+    historySheet.appendRow([
+      historyId,
+      bookingId,
+      oldStatus,
+      newStatus,
+      session.username,
+      now,
+      reason,
+      "", // Document URL (for future use)
+    ]);
+
+    return {
+      success: true,
+      message: `เปลี่ยนสถานะเป็น ${newStatus} สำเร็จ`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาด: " + error.message,
+    };
+  }
+}
+
+// ========================================
+// SLIP UPLOAD FUNCTIONS
+// ========================================
+
+/**
+ * Upload Slip to Google Drive
+ * อัพโหลดสลิปการชำระเงินไปยัง Google Drive
+ */
+function uploadSlip(
+  sessionToken,
+  bookingId,
+  bookingDate,
+  fileName,
+  base64Data,
+  mimeType
+) {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    // Decode base64
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data),
+      mimeType,
+      fileName
+    );
+
+    // Get or create folder
+    const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+
+    // Create subfolder for booking if not exists
+    const subfolderName = "Slips_" + bookingId;
+    let subfolder;
+    const subfolders = folder.getFoldersByName(subfolderName);
+    if (subfolders.hasNext()) {
+      subfolder = subfolders.next();
+    } else {
+      subfolder = folder.createFolder(subfolderName);
+    }
+
+    // Upload file
+    const extension = fileName.includes(".")
+      ? fileName.split(".").pop()
+      : "jpg";
+    const newFileName = `${bookingId}_${bookingDate}.${extension}`;
+
+    const file = subfolder.createFile(blob);
+    file.setName(newFileName);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileUrl = file.getUrl();
+
+    return {
+      success: true,
+      message: "อัพโหลดสลิปสำเร็จ",
+      data: {
+        url: fileUrl,
+        fileId: file.getId(),
+      },
+    };
+  } catch (error) {
+    Logger.log("Upload slip error: " + error.message);
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาดในการอัพโหลด: " + error.message,
+    };
+  }
+}
+
+/**
+ * Update Booking Slip URL
+ * อัพเดท URL สลิปในการจอง
+ */
+function updateBookingSlip(sessionToken, bookingId, slipUrl) {
+  try {
+    // Validate session
+    const session = validateSession(sessionToken);
+    if (!session) {
+      return {
+        success: false,
+        message: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
+    const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
+    const data = sheet.getDataRange().getValues();
+
+    // Find booking
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === bookingId) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        message: "ไม่พบข้อมูลการจอง",
+      };
+    }
+
+    // Update slip URL (Column L) and change status to PENDING (Column K)
+    sheet.getRange(rowIndex, 12).setValue(slipUrl); // Slip URL
+    sheet.getRange(rowIndex, 11).setValue(CONFIG.STATUS.CONFIRM); // Status → CONFIRM (มีสลิป = ยืนยัน)
+    sheet.getRange(rowIndex, 18).setValue(session.username); // Updated by
+    sheet.getRange(rowIndex, 19).setValue(getCurrentTimestamp()); // Updated at
+
+    return {
+      success: true,
+      message: "อัพเดทสลิปสำเร็จ",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "เกิดข้อผิดพลาด: " + error.message,
+    };
+  }
 }

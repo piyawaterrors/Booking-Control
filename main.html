@@ -575,7 +575,12 @@
     loadMenu(currentUser.role);
 
     // Load last visited page or default
-    const lastPage = getCurrentPage();
+    let lastPage = getCurrentPage();
+
+    // Security Check: Prevent non-owners from accessing restricted pages even if cached
+    if (lastPage === "employees" && currentUser.role !== "Owner") {
+      lastPage = null; // Force default redirect
+    }
 
     if (lastPage) {
       // โหลดหน้าที่เคยเปิดล่าสุด
@@ -618,13 +623,29 @@
 
     menuItems.forEach((item) => {
       const requiredRole = item.getAttribute("data-role");
+      const pageName = item.getAttribute("data-page");
 
+      // Reset visibility first (unless it has 'hidden' class by default in HTML, but here we manage dynamically)
+      // Actually, better to start by checking rules.
+
+      let isVisible = true;
+
+      // Rule 1: Role Specific Menu (e.g. Employees for Owner)
       if (requiredRole) {
-        if (role === requiredRole || role === "Owner") {
-          item.classList.remove("hidden");
-        } else {
-          item.classList.add("hidden");
+        if (role !== requiredRole && role !== "Owner") {
+          isVisible = false;
         }
+      }
+
+      // Rule 2: OP Role Restriction (Only Booking)
+      if (role === "OP" && pageName !== "booking") {
+        isVisible = false;
+      }
+
+      if (isVisible) {
+        item.classList.remove("hidden");
+      } else {
+        item.classList.add("hidden");
       }
     });
 
