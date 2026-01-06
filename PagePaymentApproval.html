@@ -487,7 +487,7 @@
           <select
             id="newStatusSelect"
             onchange="toggleReasonField()"
-            class="input-modern select-modern w-full sm:w-auto"
+            class="input-modern select-modern w-full"
           >
             <option value="">-- เลือกสถานะ --</option>
             <option value="Confirm">Confirm</option>
@@ -1170,12 +1170,20 @@
 
     statusSelect.innerHTML = '<option value="">-- เลือกสถานะ --</option>';
     allStatuses.forEach((status) => {
-      if (status !== currentStatus) {
-        const option = document.createElement("option");
-        option.value = status;
-        option.textContent = status;
-        statusSelect.appendChild(option);
+      // Skip current status
+      if (status === currentStatus) {
+        return;
       }
+
+      // Prevent changing from Completed back to Confirm
+      if (currentStatus === "Completed" && status === "Confirm") {
+        return;
+      }
+
+      const option = document.createElement("option");
+      option.value = status;
+      option.textContent = status;
+      statusSelect.appendChild(option);
     });
 
     document.getElementById("statusReasonText").value = "";

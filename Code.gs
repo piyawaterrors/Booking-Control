@@ -1672,12 +1672,6 @@ function toggleProgramStatus(programId) {
  */
 function getDashboardData(sessionToken, startDate, endDate) {
   try {
-    Logger.log(
-      "getDashboardData called with token: " +
-        (sessionToken ? "exists" : "null")
-    );
-    Logger.log("Date range: " + startDate + " to " + endDate);
-
     // Validate session
     const session = validateSession(sessionToken);
     if (!session) {
@@ -1688,13 +1682,6 @@ function getDashboardData(sessionToken, startDate, endDate) {
       };
     }
 
-    Logger.log(
-      "Session validated for user: " +
-        session.username +
-        ", role: " +
-        session.role
-    );
-
     // Check role permissions (Owner, Cost, and Admin can access)
     const allowedRoles = [
       CONFIG.ROLES.OWNER,
@@ -1702,11 +1689,8 @@ function getDashboardData(sessionToken, startDate, endDate) {
       CONFIG.ROLES.ADMIN,
     ];
     if (!allowedRoles.includes(session.role)) {
-      Logger.log("Access denied for role: " + session.role);
       return { success: false, message: "ไม่มีสิทธิ์เข้าถึง Dashboard" };
     }
-
-    Logger.log("Access granted, fetching dashboard data...");
 
     // Parse date range
     const filterStart = startDate ? new Date(startDate) : null;
@@ -1719,120 +1703,116 @@ function getDashboardData(sessionToken, startDate, endDate) {
       filterEnd.setHours(23, 59, 59, 999);
     }
 
-    Logger.log("Filter range: " + filterStart + " to " + filterEnd);
+    // Calculate previous period for comparison
+    let prevFilterStart = null;
+    let prevFilterEnd = null;
+
+    if (filterStart && filterEnd) {
+      const daysDiff =
+        Math.ceil((filterEnd - filterStart) / (1000 * 60 * 60 * 24)) + 1;
+      prevFilterEnd = new Date(filterStart);
+      prevFilterEnd.setDate(prevFilterEnd.getDate() - 1);
+      prevFilterEnd.setHours(23, 59, 59, 999);
+
+      prevFilterStart = new Date(prevFilterEnd);
+      prevFilterStart.setDate(prevFilterStart.getDate() - daysDiff + 1);
+      prevFilterStart.setHours(0, 0, 0, 0);
+    }
 
     const sheet = getSheet(CONFIG.SHEETS.BOOKING_RAW);
     const data = sheet.getDataRange().getValues();
 
-    const today = new Date();
-    const thisMonth = today.getMonth();
-    const thisYear = today.getFullYear();
-
-    let salesToday = 0;
-    let salesThisMonth = 0;
+    // Initialize counters for current period
+    let totalSales = 0;
+    let completedBookings = 0;
+    let confirmedBookings = 0;
     let pendingAmount = 0;
     let totalBookings = 0;
     let cancelledBookings = 0;
+
+    // Initialize counters for previous period
+    let prevTotalSales = 0;
+    let prevCompletedBookings = 0;
+    let prevTotalBookings = 0;
 
     const programStats = {};
     const agentStats = {};
     const locationStats = {};
 
-    // Track status counts for debugging
-    const statusCounts = {};
-
-    Logger.log("Expected COMPLETE status: '" + CONFIG.STATUS.COMPLETE + "'");
-
+    // Process filtered bookings
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const bookingDate = new Date(row[1]);
-      const status = row[11]; // Column L: Status (Previously K/10)
-      const totalAmount = Number(row[15]) || 0; // Column P: Total Amount (Previously O/14)
-      const program = row[4]; // Column E: Program (Index 4 remains same)
-      const agent = row[13]; // Column N: Agent (Previously M/12)
+      const status = row[11]; // Column L: Status
+      const totalAmount = Number(row[15]) || 0; // Column P: Total Amount
+      const program = row[4]; // Column E: Program
+      const agent = row[13]; // Column N: Agent
 
-      // Skip if outside date range
-      if (filterStart && bookingDate < filterStart) continue;
-      if (filterEnd && bookingDate > filterEnd) continue;
+      // Check if in current period
+      const isInCurrentPeriod =
+        (!filterStart || bookingDate >= filterStart) &&
+        (!filterEnd || bookingDate <= filterEnd);
 
-      // Track status counts
-      if (!statusCounts[status]) {
-        statusCounts[status] = 0;
-      }
-      statusCounts[status]++;
+      // Check if in previous period
+      const isInPreviousPeriod =
+        prevFilterStart &&
+        prevFilterEnd &&
+        bookingDate >= prevFilterStart &&
+        bookingDate <= prevFilterEnd;
 
-      // Log first few bookings for debugging
-      if (i <= 3) {
-        Logger.log(
-          "Booking " + i + " - Status: '" + status + "', Amount: " + totalAmount
-        );
-      }
+      // Process current period data
+      if (isInCurrentPeriod) {
+        totalBookings++;
 
-      totalBookings++;
-
-      // Count cancelled bookings
-      if (status === CONFIG.STATUS.CANCEL) {
-        cancelledBookings++;
-      }
-
-      // Normalize dates for comparison (remove time component)
-      const bookingDateOnly = new Date(
-        bookingDate.getFullYear(),
-        bookingDate.getMonth(),
-        bookingDate.getDate()
-      );
-      const todayOnly = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
-      );
-
-      // Sales today (Completed only, based on Booking Date)
-      if (
-        status === CONFIG.STATUS.COMPLETE &&
-        bookingDateOnly.getTime() === todayOnly.getTime()
-      ) {
-        salesToday += totalAmount;
-      }
-
-      // Sales this month (Completed only)
-      if (
-        status === CONFIG.STATUS.COMPLETE &&
-        bookingDate.getMonth() === thisMonth &&
-        bookingDate.getFullYear() === thisYear
-      ) {
-        salesThisMonth += totalAmount;
-      }
-
-      // Confirmed travel amount
-      if (status === CONFIG.STATUS.CONFIRM) {
-        pendingAmount += totalAmount;
-      }
-
-      // Program stats
-      if (status === CONFIG.STATUS.COMPLETE) {
-        if (!programStats[program]) {
-          programStats[program] = { count: 0, amount: 0 };
+        if (status === CONFIG.STATUS.CANCEL) {
+          cancelledBookings++;
         }
-        programStats[program].count++;
-        programStats[program].amount += totalAmount;
+
+        if (status === CONFIG.STATUS.COMPLETE) {
+          completedBookings++;
+          totalSales += totalAmount;
+        }
+
+        if (status === CONFIG.STATUS.CONFIRM) {
+          confirmedBookings++;
+          pendingAmount += totalAmount;
+        }
+
+        // Program stats
+        if (status === CONFIG.STATUS.COMPLETE) {
+          if (!programStats[program]) {
+            programStats[program] = { count: 0, amount: 0 };
+          }
+          programStats[program].count++;
+          programStats[program].amount += totalAmount;
+        }
+
+        // Agent stats
+        if (status === CONFIG.STATUS.COMPLETE && agent) {
+          if (!agentStats[agent]) {
+            agentStats[agent] = 0;
+          }
+          agentStats[agent] += totalAmount;
+        }
+
+        // Location stats
+        if (status === CONFIG.STATUS.COMPLETE && row[3]) {
+          const locationName = row[3];
+          if (!locationStats[locationName]) {
+            locationStats[locationName] = 0;
+          }
+          locationStats[locationName] += totalAmount;
+        }
       }
 
-      // Agent stats
-      if (status === CONFIG.STATUS.COMPLETE && agent) {
-        if (!agentStats[agent]) {
-          agentStats[agent] = 0;
-        }
-        agentStats[agent] += totalAmount;
-      }
+      // Process previous period data (for comparison)
+      if (isInPreviousPeriod) {
+        prevTotalBookings++;
 
-      // Location stats
-      if (status === CONFIG.STATUS.COMPLETE && row[3]) {
-        const locationName = row[3]; // Column D: Location Name (Index 3 remains same)
-        if (!locationStats[locationName]) {
-          locationStats[locationName] = 0;
+        if (status === CONFIG.STATUS.COMPLETE) {
+          prevCompletedBookings++;
+          prevTotalSales += totalAmount;
         }
-        locationStats[locationName] += totalAmount;
       }
     }
 
@@ -1841,6 +1821,15 @@ function getDashboardData(sessionToken, startDate, endDate) {
       totalBookings > 0
         ? ((cancelledBookings / totalBookings) * 100).toFixed(2)
         : 0;
+
+    // Calculate growth rates (% change from previous period)
+    const calculateGrowth = (current, previous) => {
+      if (!previous || previous === 0) return null;
+      return (((current - previous) / previous) * 100).toFixed(2);
+    };
+
+    const salesGrowth = calculateGrowth(totalSales, prevTotalSales);
+    const bookingsGrowth = calculateGrowth(totalBookings, prevTotalBookings);
 
     // Get top 5 programs
     const topPrograms = Object.entries(programStats)
@@ -1851,10 +1840,18 @@ function getDashboardData(sessionToken, startDate, endDate) {
     return {
       success: true,
       data: {
-        salesToday: salesToday,
-        salesThisMonth: salesThisMonth,
+        totalSales: totalSales,
+        completedBookings: completedBookings,
+        confirmedBookings: confirmedBookings,
         pendingAmount: pendingAmount,
+        totalBookings: totalBookings,
+        cancelledBookings: cancelledBookings,
         cancelRate: cancelRate,
+        // Comparison data
+        salesGrowth: salesGrowth, // % เปลี่ยนแปลงของยอดขาย
+        bookingsGrowth: bookingsGrowth, // % เปลี่ยนแปลงของจำนวน Booking
+        prevTotalSales: prevTotalSales, // ยอดขายช่วงก่อนหน้า
+        prevTotalBookings: prevTotalBookings, // จำนวน Booking ช่วงก่อนหน้า
         topPrograms: topPrograms,
         salesByAgent: agentStats,
         salesByLocation: locationStats,

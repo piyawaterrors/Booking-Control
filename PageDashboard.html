@@ -93,23 +93,24 @@
 
   <!-- Stats Cards -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-    <!-- Today's Sales -->
+    <!-- Total Sales Card -->
     <div
       class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-all duration-300"
     >
       <div class="flex items-center justify-between">
         <div class="flex-1">
-          <p class="text-sm font-medium text-gray-600">ยอดขายวันนี้</p>
+          <p class="text-sm font-medium text-gray-600">ยอดขายรวม</p>
           <!-- Loading Skeleton -->
-          <div id="salesTodayLoading" class="mt-2">
+          <div id="totalSalesLoading" class="mt-2">
             <div class="h-9 bg-gray-200 rounded-lg w-32 animate-pulse"></div>
             <div class="h-3 bg-gray-100 rounded w-24 mt-2 animate-pulse"></div>
           </div>
           <!-- Actual Data -->
-          <div id="salesTodayData" class="hidden">
-            <p class="text-3xl font-bold text-gray-900 mt-2" id="salesToday">
-              ฿0
-            </p>
+          <div id="totalSalesData" class="hidden">
+            <div class="flex items-center gap-2 mt-2">
+              <p class="text-3xl font-bold text-gray-900" id="totalSales">฿0</p>
+              <span id="salesGrowthIndicator" class="hidden"></span>
+            </div>
             <p class="text-xs text-gray-500 mt-1">
               <span class="inline-flex items-center">
                 <svg
@@ -123,7 +124,7 @@
                     clip-rule="evenodd"
                   ></path>
                 </svg>
-                จากรายการที่ Completed
+                ช่วงเวลาที่เลือก (Completed)
               </span>
             </p>
           </div>
@@ -148,23 +149,26 @@
       </div>
     </div>
 
-    <!-- This Month Revenue -->
+    <!-- Total Bookings Card -->
     <div
       class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-all duration-300"
     >
       <div class="flex items-center justify-between">
         <div class="flex-1">
-          <p class="text-sm font-medium text-gray-600">ยอดขายเดือนนี้</p>
+          <p class="text-sm font-medium text-gray-600">จำนวน Booking</p>
           <!-- Loading Skeleton -->
-          <div id="salesMonthLoading" class="mt-2">
+          <div id="totalBookingsLoading" class="mt-2">
             <div class="h-9 bg-gray-200 rounded-lg w-32 animate-pulse"></div>
             <div class="h-3 bg-gray-100 rounded w-24 mt-2 animate-pulse"></div>
           </div>
           <!-- Actual Data -->
-          <div id="salesMonthData" class="hidden">
-            <p class="text-3xl font-bold text-gray-900 mt-2" id="salesMonth">
-              ฿0
-            </p>
+          <div id="totalBookingsData" class="hidden">
+            <div class="flex items-center gap-2 mt-2">
+              <p class="text-3xl font-bold text-gray-900" id="totalBookings">
+                0
+              </p>
+              <span id="bookingsGrowthIndicator" class="hidden"></span>
+            </div>
             <p class="text-xs text-gray-500 mt-1">
               <span class="inline-flex items-center">
                 <svg
@@ -178,7 +182,9 @@
                     clip-rule="evenodd"
                   ></path>
                 </svg>
-                รายได้สะสม
+                <span id="completedCount" class="text-green-500">0 </span>,
+                <span id="confirmedCount" class="text-blue-500 ml-2">0 </span>,
+                <span id="cancelledCount" class="text-red-500 ml-2">0 </span>
               </span>
             </p>
           </div>
@@ -196,7 +202,7 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             ></path>
           </svg>
         </div>
@@ -320,7 +326,7 @@
     <div class="bg-white rounded-2xl shadow-lg p-6">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-bold text-gray-800">Top 5 โปรแกรมยอดนิยม</h3>
-        <span class="text-xs text-gray-500">ตามยอดขาย</span>
+        <span class="text-xs text-gray-500">ช่วงที่เลือก</span>
       </div>
       <div id="topProgramsContainer" class="space-y-4">
         <!-- Loading -->
@@ -504,11 +510,11 @@
    */
   function showSkeletons() {
     // Show skeleton, hide data for all cards
-    document.getElementById("salesTodayLoading")?.classList.remove("hidden");
-    document.getElementById("salesTodayData")?.classList.add("hidden");
+    document.getElementById("totalSalesLoading")?.classList.remove("hidden");
+    document.getElementById("totalSalesData")?.classList.add("hidden");
 
-    document.getElementById("salesMonthLoading")?.classList.remove("hidden");
-    document.getElementById("salesMonthData")?.classList.add("hidden");
+    document.getElementById("totalBookingsLoading")?.classList.remove("hidden");
+    document.getElementById("totalBookingsData")?.classList.add("hidden");
 
     document.getElementById("pendingAmountLoading")?.classList.remove("hidden");
     document.getElementById("pendingAmountData")?.classList.add("hidden");
@@ -537,17 +543,65 @@
    */
   function hideSkeletons() {
     // Hide skeleton, show data for all cards
-    document.getElementById("salesTodayLoading")?.classList.add("hidden");
-    document.getElementById("salesTodayData")?.classList.remove("hidden");
+    document.getElementById("totalSalesLoading")?.classList.add("hidden");
+    document.getElementById("totalSalesData")?.classList.remove("hidden");
 
-    document.getElementById("salesMonthLoading")?.classList.add("hidden");
-    document.getElementById("salesMonthData")?.classList.remove("hidden");
+    document.getElementById("totalBookingsLoading")?.classList.add("hidden");
+    document.getElementById("totalBookingsData")?.classList.remove("hidden");
 
     document.getElementById("pendingAmountLoading")?.classList.add("hidden");
     document.getElementById("pendingAmountData")?.classList.remove("hidden");
 
     document.getElementById("cancelRateLoading")?.classList.add("hidden");
     document.getElementById("cancelRateData")?.classList.remove("hidden");
+  }
+
+  /**
+   * Update Growth Indicator
+   */
+  function updateGrowthIndicator(elementId, growthRate) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    // If no growth data (null or undefined), hide indicator
+    if (growthRate === null || growthRate === undefined) {
+      element.classList.add("hidden");
+      return;
+    }
+
+    const rate = parseFloat(growthRate);
+    const isPositive = rate > 0;
+    const isNegative = rate < 0;
+    const isZero = rate === 0;
+
+    // Arrow icons
+    const upArrow = `<svg class="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>`;
+    const downArrow = `<svg class="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>`;
+    const equalIcon = `<svg class="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>`;
+
+    let icon, colorClass, text;
+
+    if (isPositive) {
+      icon = upArrow;
+      colorClass = "text-green-600 bg-green-50";
+      text = `+${Math.abs(rate).toFixed(1)}%`;
+    } else if (isNegative) {
+      icon = downArrow;
+      colorClass = "text-red-600 bg-red-50";
+      text = `${rate.toFixed(1)}%`;
+    } else {
+      icon = equalIcon;
+      colorClass = "text-gray-500 bg-gray-50";
+      text = "0%";
+    }
+
+    element.innerHTML = `
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}">
+        ${icon}
+        <span class="ml-1">${text}</span>
+      </span>
+    `;
+    element.classList.remove("hidden");
   }
 
   /**
@@ -590,15 +644,34 @@
         if (response.success) {
           const data = response.data;
 
-          // Update stat cards
-          document.getElementById("salesToday").textContent =
-            "฿" + Number(data.salesToday || 0).toLocaleString();
-          document.getElementById("salesMonth").textContent =
-            "฿" + Number(data.salesThisMonth || 0).toLocaleString();
+          // Update stat cards with new field names
+          document.getElementById("totalSales").textContent =
+            "฿" + Number(data.totalSales || 0).toLocaleString();
+
+          document.getElementById("totalBookings").textContent = Number(
+            data.totalBookings || 0
+          ).toLocaleString();
+
+          // Update completed and confirmed counts
+          document.getElementById("completedCount").textContent = `${Number(
+            data.completedBookings || 0
+          ).toLocaleString()} Complete`;
+          document.getElementById("confirmedCount").textContent = `${Number(
+            data.confirmedBookings || 0
+          ).toLocaleString()} Confirm`;
+          document.getElementById("cancelledCount").textContent = `${Number(
+            data.cancelledBookings || 0
+          ).toLocaleString()} Cancel`;
+
           document.getElementById("pendingAmount").textContent =
             "฿" + Number(data.pendingAmount || 0).toLocaleString();
+
           document.getElementById("cancelRate").textContent =
             (data.cancelRate || 0) + "%";
+
+          // Update growth indicators
+          updateGrowthIndicator("salesGrowthIndicator", data.salesGrowth);
+          updateGrowthIndicator("bookingsGrowthIndicator", data.bookingsGrowth);
 
           // Render Top Programs
           renderTopPrograms(data.topPrograms || []);
