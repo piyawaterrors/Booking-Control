@@ -46,7 +46,7 @@
   }
 
   /* ========================================
-     MODAL ANIMATIONS
+     MODAL ANIMATIONS (Enhanced)
      ======================================== */
 
   @keyframes modalFadeIn {
@@ -60,7 +60,7 @@
 
   @keyframes modalSlideIn {
     from {
-      transform: scale(0.95) translateY(-20px);
+      transform: scale(0.95) translateY(10px);
       opacity: 0;
     }
     to {
@@ -84,25 +84,25 @@
       opacity: 1;
     }
     to {
-      transform: scale(0.95) translateY(20px);
+      transform: scale(0.95) translateY(10px);
       opacity: 0;
     }
   }
 
   .modal-show {
-    animation: modalFadeIn 0.05s ease-out;
+    animation: modalFadeIn 0.3s ease-out forwards;
   }
 
   .modal-hide {
-    animation: modalFadeOut 0.05s ease-in forwards;
+    animation: modalFadeOut 0.2s ease-in forwards;
   }
 
   .modal-content-show {
-    animation: modalSlideIn 0.05s ease-out forwards;
+    animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .modal-content-hide {
-    animation: modalSlideOut 0.05s ease-in forwards;
+    animation: modalSlideOut 0.2s ease-in forwards;
   }
 
   /* ========================================
@@ -521,6 +521,12 @@
 
   .glass {
     background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
   }

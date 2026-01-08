@@ -311,7 +311,7 @@
               type="text"
               id="locationName"
               required
-              placeholder="เช่น ภูเก็ต, เขาหลัก"
+              placeholder=""
               class="input-modern"
             />
           </div>
@@ -324,7 +324,7 @@
               type="text"
               id="cellName"
               required
-              placeholder="เช่น PATTAYA, PHUKET"
+              placeholder=""
               class="input-modern"
             />
           </div>
@@ -333,7 +333,7 @@
             <label class="block text-sm font-semibold text-gray-700 mb-2"
               >สถานะการใช้งาน</label
             >
-            <select id="locStatus" class="w-full input-modern">
+            <select id="locStatus" class="w-full input-modern select-modern">
               <option value="เปิดใช้งาน">เปิดใช้งาน</option>
               <option value="ปิดใช้งาน">ปิดใช้งาน</option>
             </select>
@@ -424,7 +424,7 @@
           type="button"
           id="locDeleteCancelBtn"
           onclick="closeLocDeleteModal()"
-          class="flex-1 px-6 py-3 border-2 border-gray-100 text-gray-700 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold"
+          class="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
         >
           ยกเลิก
         </button>
@@ -591,17 +591,15 @@
         .map(
           (loc) => `
         <tr class="group hover:bg-purple-50/50 transition-all duration-200">
-        <td class="px-6 py-4">
-           <div class="px-6 py-4 text-sm font-semibold text-gray-700">${
-             loc.locationId
-           }</div>
+          <td class="px-6 py-4 text-sm font-semibold text-gray-700">
+           ${loc.locationId}
           </td>
-          <td class="px-6 py-4 text-sm text-gray-600 font-medium">${
-            loc.locationName
-          }</td>
-          <td class="px-6 py-4 text-sm text-gray-600 font-medium">${
-            loc.cellName
-          }</td>
+          <td class="px-6 py-4 text-sm text-gray-600 font-medium">
+           ${loc.locationName}
+          </td>
+          <td class="px-6 py-4 text-sm text-gray-600 font-medium">
+           ${loc.cellName}
+          </td>
           <td class="px-6 py-4 text-center">
             <button onclick="toggleLocStatus('${
               loc.locationId
