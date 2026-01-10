@@ -1,0 +1,573 @@
+<!-- PDF Generator Utility -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+  /**
+   * Generate Invoice PDF from Frontend
+   */
+  function generateInvoicePDF(booking) {
+    const invoiceHTML = createInvoiceHTML(booking);
+    const opt = {
+      margin: 0,
+      filename: `Invoice_${booking.bookingId}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: {
+        scale: 3,
+        useCORS: true,
+        letterRendering: true,
+        logging: false,
+      },
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+        compress: true,
+      },
+      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+    };
+    html2pdf().set(opt).from(invoiceHTML).save();
+  }
+
+  /**
+   * Preview Invoice PDF
+   */
+  async function previewInvoicePDF(booking) {
+    const invoiceHTML = createInvoiceHTML(booking);
+    const opt = {
+      margin: 0,
+      filename: `Invoice_${booking.bookingId}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        windowWidth: 794, // A4 width in pixels at 96 DPI
+        windowHeight: 1123, // A4 height in pixels at 96 DPI
+      },
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+      },
+    };
+
+    // Generate PDF data URI first
+    const pdfDataUri = await html2pdf()
+      .set(opt)
+      .from(invoiceHTML)
+      .outputPdf("datauristring");
+
+    // Create temporary container to render HTML
+    const tempContainer = document.createElement("div");
+    tempContainer.style.position = "absolute";
+    tempContainer.style.left = "-9999px";
+    tempContainer.innerHTML = invoiceHTML;
+    document.body.appendChild(tempContainer);
+
+    // Find all pages
+    const pages = tempContainer.querySelectorAll(".page");
+    const canvases = [];
+
+    // Render each page separately
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      const canvas = await html2canvas(page, {
+        scale: 3,
+        useCORS: true,
+        letterRendering: true,
+        width: 794,
+        height: 1123,
+        windowWidth: 794,
+        windowHeight: 1123,
+      });
+      canvases.push(canvas);
+    }
+
+    // Clean up
+    document.body.removeChild(tempContainer);
+
+    showPDFPreview(
+      canvases,
+      pdfDataUri,
+      `Invoice_${booking.bookingId}.pdf`,
+      booking.bookingId
+    );
+  }
+
+  /**
+   * Create Invoice HTML Template
+   */
+  function createInvoiceHTML(booking) {
+    const themeColor = "#7c3aed";
+
+    const adultTotal = (booking.adults || 0) * (booking.adultPrice || 0);
+    const childTotal = (booking.children || 0) * (booking.childPrice || 0);
+    const subtotal = adultTotal + childTotal + (booking.additionalCost || 0);
+
+    const formatDate = (dateStr) => {
+      if (!dateStr) {
+        const d = new Date();
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+      return dateStr;
+    };
+
+    const itemsHTML = `
+      <tr>
+        <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">1</td>
+        <td style="padding: 10px; border-bottom: 1px solid #f3f4f6;">ผู้ใหญ่</td>
+        <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">${
+          booking.adults || 0
+        }</td>
+        <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${(
+          booking.adultPrice || 0
+        ).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${adultTotal.toLocaleString(
+          "th-TH",
+          { minimumFractionDigits: 2 }
+        )}</td>
+      </tr>
+      <tr>
+        <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">2</td>
+        <td style="padding: 10px; border-bottom: 1px solid #f3f4f6;">เด็ก</td>
+        <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">${
+          booking.children || 0
+        }</td>
+        <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${(
+          booking.childPrice || 0
+        ).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${childTotal.toLocaleString(
+          "th-TH",
+          { minimumFractionDigits: 2 }
+        )}</td>
+      </tr>
+      <tr>
+        <td style="text-align: center; padding: 10px; border-bottom: 2px solid #e5e7eb;">3</td>
+        <td style="padding: 10px; border-bottom: 2px solid #e5e7eb;">ค่าใช้จ่ายเพิ่มเติม</td>
+        <td style="text-align: center; padding: 10px; border-bottom: 2px solid #e5e7eb;">-</td>
+        <td style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">-</td>
+        <td style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">${(
+          booking.additionalCost || 0
+        ).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+        <style>
+          .page { 
+            font-family: 'Sarabun', sans-serif;
+            box-sizing: border-box;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: white;
+            position: relative;
+            padding-top: 10mm;
+            padding-left: 15mm;
+            padding-right: 15mm;
+            padding-bottom: 10mm;
+
+            color: black; 
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          .header {
+            margin-bottom: 20px;
+            text-align: center;
+          }
+
+          .company-info {
+            font-size: 12px;
+            line-height: 1.6;
+            text-align: left;
+            margin-top: 100px;
+          }
+
+          .doc-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+            text-align: center;
+          }
+
+          .doc-subtitle {
+            color: #754595;
+            text-align: center;
+            margin-bottom: 5px;
+          }
+
+          .info-section {
+            padding-top: 20px;
+          }
+
+          .info-section table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          .info-item {
+            padding: 5px 0;
+          }
+
+          .info-label {
+            color: #754595;
+            padding-right: 15px;
+            text-align: left;
+            width: 100px;
+          }
+
+          .info-value {
+            color: #1f2937;
+          }
+
+          table.items {
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 10px;
+          }
+
+          table.items th {
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+          }
+
+          .summary {
+            margin-top: 10px;
+            text-align: right;
+          }
+
+          .summary-row {
+            font-size: 13px;
+          }
+
+          .summary-label {
+            display: inline-block;
+            min-width: 150px;
+            text-align: right;
+            color: #754595;
+          }
+
+          .summary-value {
+            display: inline-block;
+            min-width: 150px;
+            text-align: right;
+          }
+
+          .notes {
+            margin: 10px 0;
+          }
+
+          .notes-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #754595;
+            margin-bottom: 5px;
+          }
+
+          .notes-content {
+            font-size: 12px;
+            color: #6b7280;
+          }
+
+          .footer {
+            position: absolute;
+            bottom: 15mm;
+            left: 20mm;
+            right: 20mm;
+            font-size: 12px;
+            padding-top: 15px;
+          }
+
+          .footer table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+
+          <div class="info-section">
+            <table>
+              <tr>
+                <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                  <div class="company-info">
+                   บริษัท ซีแลนด์ แอดเวนเจอร์ จำกัด (สำนักงานใหญ่)<br>
+                   23 ม.2 ต.สองแพรก อ.เมือง จ.พังงา<br>
+                   เลขประจำตัวผู้เสียภาษี 0825566000935
+                  </div>
+                </td>
+                <td style="width: 50%; vertical-align: top;">
+                    <div class="header">
+                        <div class="doc-title">ใบวางบิล</div>
+                        <div class="doc-subtitle">ต้นฉบับ</div>
+                    </div>
+                  <div style="border-top: 1px solid #e5e7eb;"/>
+                  <table style="width: 100%; margin-top: 10px;">
+                    <tr class="info-item">
+                      <td class="info-label">เลขที่</td>
+                      <td class="info-value">${
+                        booking.bookingId || "BK-202601090102"
+                      }</td>
+                    </tr>
+                    <tr class="info-item">
+                      <td class="info-label">วันที่</td>
+                      <td class="info-value">${formatDate(
+                        booking.bookingDate
+                      )}</td>
+                    </tr>
+                    <tr class="info-item">
+                      <td class="info-label">ครบกำหนด</td>
+                      <td class="info-value">${formatDate(
+                        booking.bookingDate
+                      )}</td>
+                    </tr>
+                    <tr class="info-item">
+                      <td class="info-label">ผู้ขาย</td>
+                      <td class="info-value">บริษัท ซีแลนด์ แอดเวนเจอร์ จำกัด</td>
+                    </tr>
+                  </table>
+                  <div style="border-top: 1px solid #e5e7eb; margin-top: 10px;"/>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div>
+            <table style="width: 100%;">
+              <tr>
+                <td style="width: 25%; padding: 8px 0;">
+                  <div style="color: #754595; font-weight: 600; margin-bottom: 3px;">ลูกค้า</div>
+                  <div style="font-weight: 500;">Yona Tour Group</div>
+                </td>
+                <td style="width: 25%; padding: 8px 0;">
+                  <div style="color: #754595; font-weight: 600; margin-bottom: 3px;">โปรแกรม</div>
+                  <div style="font-weight: 500;">${booking.program || "-"}</div>
+                </td>
+                <td style="width: 25%; padding: 8px 0;">
+                  <div style="color: #754595; font-weight: 600; margin-bottom: 3px;">สถานที่</div>
+                  <div style="font-weight: 500;">${
+                    booking.location || "-"
+                  }</div>
+                </td>
+                <td style="width: 25%; padding: 8px 0;">
+                  <div style="color: #754595; font-weight: 600; margin-bottom: 3px;">AGENT</div>
+                  <div style="font-weight: 500;">${booking.agent || "-"}</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <table class="items">
+            <thead>
+              <tr style="border-top: 1px solid #e5e7eb;">
+                <th style="width: 5%; text-align: center;">#</th>
+                <th style="width: 40%;">รายละเอียด</th>
+                <th style="width: 15%; text-align: center;">จำนวน</th>
+                <th style="width: 20%; text-align: right;">ราคาต่อหน่วย</th>
+                <th style="width: 20%; text-align: right;">เงินรวม</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHTML}
+            </tbody>
+          </table>
+
+          <div class="summary">
+            <div class="summary-row">
+              <span class="summary-label">รวมเป็นเงิน</span>
+              <span class="summary-value">${subtotal.toLocaleString("th-TH", {
+                minimumFractionDigits: 2,
+              })} บาท</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">ส่วนลด</span>
+              <span class="summary-value">${(
+                booking.discount || 0
+              ).toLocaleString("th-TH", {
+                minimumFractionDigits: 2,
+              })} บาท</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">ภาษีมูลค่าเพิ่ม 0%</span>
+              <span class="summary-value">0.00 บาท</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">จำนวนรวมทั้งสิ้น</span>
+              <span class="summary-value">${(
+                subtotal - (booking.discount || 0)
+              ).toLocaleString("th-TH", {
+                minimumFractionDigits: 2,
+              })} บาท</span>
+            </div>
+          </div>
+
+          <div class="notes">
+            <div class="notes-label">หมายเหตุ</div>
+            <div class="notes-content">${booking.notes || ""}</div>
+          </div>
+
+          <div class="footer">
+            <table style="width: 100%;">
+              <tr>
+                <td style="width: 50%; vertical-align: top;">
+                  <div style="font-size: 12px; margin-bottom: 60px; text-align: left;">ในนาม Yona Tour Group</div>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="width: 37%; border-top: 1px solid #e5e7eb; padding-top: 5px; text-align: center; font-size: 12px; color: #000;">ผู้วางบิล</td>
+                      <td style="width: 6%;"></td>
+                      <td style="width: 37%; border-top: 1px solid #e5e7eb; padding-top: 5px; text-align: center; font-size: 12px; color: #000;">วันที่</td>
+                      <td style="width: 20%;"></td>
+                    </tr>
+                  </table>
+                </td>
+                <td style="width: 50%; vertical-align: top;">
+                  <div style="font-size: 12px; margin-bottom: 60px; text-align: right;">ในนาม บริษัท ซีแลนด์ แอดเวนเจอร์ จำกัด</div>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="width: 20%;"></td>
+                      <td style="width: 37%; border-top: 1px solid #e5e7eb; padding-top: 5px; text-align: center; font-size: 12px; color: #000;">ผู้รับบิล</td>
+                      <td style="width: 6%;"></td>
+                      <td style="width: 37%; border-top: 1px solid #e5e7eb; padding-top: 5px; text-align: center; font-size: 12px; color: #000;">วันที่</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Page 2: Payment Information -->
+        <div class="page" style="page-break-before: always;">
+          <div style="color: #00bcd4; font-size: 24px; font-weight: 700; margin-bottom: 30px;">ข้อมูลการรับชำระ</div>
+          
+          <div style="margin-bottom: 30px;">
+            <div style="font-size: 12px; line-height: 1.6;">
+              บริษัท ซีแลนด์ แอดเวนเจอร์ จำกัด (สำนักงานใหญ่)<br>
+              23 ม.2 ต.สองแพรก อ.เมือง จ.พังงา<br>
+              เลขประจำตัวผู้เสียภาษี 0825566000935
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 30px;">
+            <div style="font-size: 20px; font-weight: 700; margin-bottom: 30px;">โอนเงิน</div>
+            
+            <div style="border: 2px solid #e5e7eb; border-radius: 12px; padding: 40px; text-align: center; max-width: 350px;">
+              <!-- QR Code Placeholder -->
+              <div style="width: 40px; height: 40px; margin: 0 auto 20px; border: 2px solid #4caf50; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+                </svg>
+              </div>
+              
+              <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">163-1-12928-1</div>
+              <div style="font-size: 14px; color: #666; margin-bottom: 4px;">ธ. กสิกรไทย</div>
+              <div style="font-size: 13px; color: #999;">บจก. ซีแลนด์ แอดเวนเจอร์</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Wrapper functions
+   */
+  async function viewInvoice(bookingId) {
+    const booking = allBookings.find((b) => b.bookingId === bookingId);
+    if (!booking) {
+      showToast("ไม่พบข้อมูลการจอง", "error");
+      return;
+    }
+    await previewInvoicePDF(booking);
+  }
+
+  function downloadInvoice(bookingId) {
+    const booking = allBookings.find((b) => b.bookingId === bookingId);
+    if (!booking) {
+      showToast("ไม่พบข้อมูลการจอง", "error");
+      return;
+    }
+    generateInvoicePDF(booking);
+    showToast("กำลังสร้าง PDF...", "info");
+  }
+
+  function showPDFPreview(canvases, pdfDataUri, filename, bookingId) {
+    document.getElementById("previewBookingId").textContent = "#" + bookingId;
+    const modal = document.getElementById("invoicePreviewModal");
+    const modalContent = document.getElementById("invoicePreviewContent");
+    const container = document.getElementById("pdfViewerContainer");
+
+    modal.classList.remove("hidden");
+    modal.classList.add("modal-show");
+
+    setTimeout(() => {
+      modalContent.classList.add("modal-content-show");
+    }, 10);
+
+    const base64Data = pdfDataUri.split(",")[1];
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const blobUrl = URL.createObjectURL(blob);
+
+    container.innerHTML = "";
+
+    // Ensure container displays items vertically
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.alignItems = "center";
+    container.style.gap = "20px";
+
+    // Handle both single canvas and array of canvases
+    const canvasArray = Array.isArray(canvases) ? canvases : [canvases];
+
+    canvasArray.forEach((canvas, index) => {
+      canvas.style.width = "100%";
+      canvas.style.maxWidth = "100%";
+      canvas.style.height = "auto";
+      canvas.style.display = "block";
+      canvas.style.borderRadius = "8px";
+      canvas.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
+      canvas.style.backgroundColor = "white";
+
+      container.appendChild(canvas);
+    });
+
+    const downloadBtn = document.getElementById("downloadInvoiceBtn");
+    downloadBtn.onclick = () => {
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    window.openInNewTab = () => {
+      window.open(blobUrl, "_blank");
+    };
+
+    window.pdfCleanup = () => {
+      URL.revokeObjectURL(blobUrl);
+    };
+  }
+</script>

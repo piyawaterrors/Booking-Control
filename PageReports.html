@@ -99,6 +99,16 @@
             ยอดขายรายวันตามสถานที่
           </h3>
           <p class="text-xs text-gray-500 mt-1">เฉพาะสถานะ Completed</p>
+          <div class="mt-2">
+            <select
+              id="sortDailySales"
+              onchange="sortAndRenderDailySales()"
+              class="input-modern select-modern w-full sm:w-auto"
+            >
+              <option value="sales">เรียงตามยอดขาย</option>
+              <option value="count">เรียงตามยอดการจอง</option>
+            </select>
+          </div>
         </div>
         <div
           class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center"
@@ -189,6 +199,16 @@
         <div>
           <h3 class="text-lg font-bold text-gray-800">สรุปยอดแต่ละโปรแกรม</h3>
           <p class="text-xs text-gray-500 mt-1">เฉพาะสถานะ Completed</p>
+          <div class="mt-2">
+            <select
+              id="sortProgramSummary"
+              onchange="sortAndRenderProgramSummary()"
+              class="input-modern select-modern w-full sm:w-auto"
+            >
+              <option value="sales">เรียงตามยอดขาย</option>
+              <option value="count">เรียงตามยอดการจอง</option>
+            </select>
+          </div>
         </div>
         <div
           class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center"
@@ -401,13 +421,15 @@
       endDateEl.value = formatDateForInput(lastDay);
     }
 
-    // Default to this month if no dates provided
-    if (!startDate || !endDate) {
+    // Default to this month if parameters are undefined (e.g. initial load)
+    if (startDate === undefined || endDate === undefined) {
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       startDate = formatDateForInput(firstDay);
       endDate = formatDateForInput(lastDay);
+      if (startDateEl) startDateEl.value = startDate;
+      if (endDateEl) endDateEl.value = endDate;
     }
 
     // Show loading
@@ -432,7 +454,7 @@
         // Both reports loaded successfully, now render them together
         if (dailySalesResponse.success) {
           dailySalesData = dailySalesResponse.data.dailySales || [];
-          renderDailySales(dailySalesData);
+          sortAndRenderDailySales();
         } else {
           showToast(
             dailySalesResponse.message || "ไม่สามารถโหลดข้อมูลยอดขายได้",
@@ -442,7 +464,7 @@
 
         if (programSummaryResponse.success) {
           programSummaryData = programSummaryResponse.data.programSummary || [];
-          renderProgramSummary(programSummaryData);
+          sortAndRenderProgramSummary();
         } else {
           showToast(
             programSummaryResponse.message || "ไม่สามารถโหลดข้อมูลโปรแกรมได้",
@@ -465,6 +487,32 @@
 
     document.getElementById("programSummaryLoading").classList.remove("hidden");
     document.getElementById("programSummaryContainer").classList.add("hidden");
+  }
+
+  /**
+   * Sort and Render Daily Sales
+   */
+  function sortAndRenderDailySales() {
+    const sortBy = document.getElementById("sortDailySales").value;
+    if (sortBy === "sales") {
+      dailySalesData.sort((a, b) => b.totalSales - a.totalSales);
+    } else {
+      dailySalesData.sort((a, b) => b.bookingCount - a.bookingCount);
+    }
+    renderDailySales(dailySalesData);
+  }
+
+  /**
+   * Sort and Render Program Summary
+   */
+  function sortAndRenderProgramSummary() {
+    const sortBy = document.getElementById("sortProgramSummary").value;
+    if (sortBy === "sales") {
+      programSummaryData.sort((a, b) => b.totalRevenue - a.totalRevenue);
+    } else {
+      programSummaryData.sort((a, b) => b.bookingCount - a.bookingCount);
+    }
+    renderProgramSummary(programSummaryData);
   }
 
   /**
@@ -585,7 +633,7 @@
       ${data
         .map((item, index) => {
           const percentage =
-            totalBookings > 0 ? (item.bookingCount / totalBookings) * 100 : 0;
+            totalRevenue > 0 ? (item.totalRevenue / totalRevenue) * 100 : 0;
 
           return `
           <div class="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-all">

@@ -179,6 +179,7 @@
 
     <!-- Add Booking Button -->
     <button
+      id="createBookingBtn"
       onclick="openCreateBookingModal()"
       class="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 font-semibold shadow-lg shadow-purple-200"
     >
@@ -247,6 +248,7 @@
             เอกสาร
           </th>
           <th
+            id="manageHeader"
             class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
             จัดการ
@@ -499,7 +501,7 @@
               required
               class="input-modern"
               onfocus="this.select()"
-              onchange="calculateTotal()"
+              oninput="calculateTotal()"
             />
           </div>
 
@@ -515,7 +517,7 @@
               value="0"
               class="input-modern"
               onfocus="this.select()"
-              onchange="calculateTotal()"
+              oninput="calculateTotal()"
             />
           </div>
 
@@ -580,8 +582,33 @@
               value="0"
               class="input-modern"
               onfocus="this.select()"
-              onchange="calculateTotal()"
+              oninput="calculateTotal()"
             />
+          </div>
+
+          <!-- รวม VAT 7% (Switch) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              รวม VAT 7%
+            </label>
+            <div class="flex items-center space-x-3">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="includeVat"
+                  class="sr-only peer"
+                  onchange="calculateTotal()"
+                />
+                <div
+                  class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
+                ></div>
+                <span
+                  class="ml-3 text-sm font-medium text-gray-700 peer-checked:text-purple-600"
+                  id="vatLabel"
+                  >ไม่รวม VAT</span
+                >
+              </label>
+            </div>
           </div>
 
           <!-- Agent -->
@@ -762,7 +789,7 @@
                       >ผู้ใหญ่: 0 คน × 0 ฿</span
                     >
                   </div>
-                  <span class="font-bold text-gray-900" id="adultTotal"
+                  <span class="font-semibold text-gray-900" id="adultTotal"
                     >0 ฿</span
                   >
                 </div>
@@ -786,7 +813,7 @@
                       >เด็ก: 0 คน × 0 ฿</span
                     >
                   </div>
-                  <span class="font-bold text-gray-900" id="childTotal"
+                  <span class="font-semibold text-gray-900" id="childTotal"
                     >0 ฿</span
                   >
                 </div>
@@ -814,8 +841,34 @@
                     >
                   </div>
                   <span
-                    class="font-bold text-orange-600"
+                    class="font-semibold text-gray-900"
                     id="additionalCostAmount"
+                    >0 ฿</span
+                  >
+                </div>
+
+                <!-- VAT 7% Row (shown when VAT is enabled) -->
+                <div
+                  class="flex items-center justify-between text-sm hidden"
+                  id="vatRow"
+                >
+                  <div class="flex items-center space-x-2">
+                    <svg
+                      class="w-4 h-4 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                    <span class="text-gray-600 font-medium">VAT 7%</span>
+                  </div>
+                  <span class="font-semibold text-gray-900" id="vatAmount"
                     >0 ฿</span
                   >
                 </div>
@@ -840,7 +893,7 @@
                     </svg>
                     <span class="text-gray-600 font-medium">ส่วนลด</span>
                   </div>
-                  <span class="font-bold text-red-600" id="discountAmount"
+                  <span class="font-semibold text-red-600" id="discountAmount"
                     >0 ฿</span
                   >
                 </div>
@@ -868,9 +921,7 @@
                     >ยอดรวมทั้งหมด</span
                   >
                 </div>
-                <span
-                  class="text-3xl font-bold text-purple-600"
-                  id="totalAmount"
+                <span class="text-3xl font-bold text-gray-900" id="totalAmount"
                   >0 ฿</span
                 >
               </div>
@@ -1060,7 +1111,9 @@
     <!-- Modal Header -->
     <div class="bg-gradient-to-r from-purple-500 to-indigo-600 p-6 relative">
       <div class="flex flex-col">
-        <h3 class="text-2xl font-bold text-white">ตัวอย่างเอกสาร</h3>
+        <h3 id="previewModalTitle" class="text-2xl font-bold text-white">
+          ตัวอย่างเอกสาร
+        </h3>
         <p id="previewBookingId" class="text-purple-100 text-sm mt-1">#...</p>
       </div>
       <button
@@ -1341,8 +1394,8 @@
     document.getElementById("filterDateFrom").value = startDate;
     document.getElementById("filterDateTo").value = endDate;
 
-    // Trigger filter
-    filterBookings();
+    // Reload bookings with new dates
+    loadBookings(startDate, endDate);
   }
 
   /**
@@ -1369,8 +1422,8 @@
       "currentBookingFilterText"
     ).textContent = `${formatDateThai(start)} - ${formatDateThai(end)}`;
 
-    // Trigger filter
-    filterBookings();
+    // Reload bookings with new dates
+    loadBookings(startDate, endDate);
   }
 
   /**
@@ -1389,43 +1442,85 @@
   /**
    * Load Bookings
    */
-  function loadBookings() {
+  function loadBookings(start, end) {
     const session = getSessionFromStorage();
     if (!session || !session.sessionToken) {
       showToast("กรุณาเข้าสู่ระบบใหม่", "error");
       return;
     }
 
-    // Initialize date inputs if not already set
+    const createBtn = document.getElementById("createBookingBtn");
+    if (createBtn) {
+      if (session.role === "OP" || session.role === "Owner") {
+        createBtn.classList.remove("hidden");
+      } else {
+        createBtn.classList.add("hidden");
+      }
+    }
+
     const startDateEl = document.getElementById("filterDateFrom");
     const endDateEl = document.getElementById("filterDateTo");
 
-    if (startDateEl && endDateEl && !startDateEl.value && !endDateEl.value) {
+    // Determine final dates
+    let finalStart = start;
+    let finalEnd = end;
+
+    // If no dates provided as arguments (e.g. initial load), default to this month
+    if (finalStart === undefined || finalEnd === undefined) {
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      startDateEl.value = formatDateForInput(firstDay);
-      endDateEl.value = formatDateForInput(lastDay);
+      finalStart = formatDateForInput(firstDay);
+      finalEnd = formatDateForInput(lastDay);
     }
 
-    // Default to this month if no dates provided
-    if (!startDate || !endDate) {
-      const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      startDate = formatDateForInput(firstDay);
-      endDate = formatDateForInput(lastDay);
-    }
+    // Update input fields if they are different
+    if (startDateEl && startDateEl.value !== finalStart)
+      startDateEl.value = finalStart;
+    if (endDateEl && endDateEl.value !== finalEnd) endDateEl.value = finalEnd;
 
-    document.getElementById("currentBookingFilterText").textContent =
-      "เดือนนี้";
+    // Update filter text ONLY if we are defaulting (no arguments provided)
+    // This prevents overwriting the specific text set by filter buttons (e.g. "Year", "Custom Dates")
+    if (start === undefined && end === undefined) {
+      let filterText = "กำหนดเอง";
+      const today = formatDateForInput(new Date());
+      const firstDay = formatDateForInput(
+        new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      );
+      const lastDay = formatDateForInput(
+        new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+      );
+
+      if (!finalStart && !finalEnd) filterText = "ทั้งหมด";
+      else if (finalStart === today && finalEnd === today)
+        filterText = "วันนี้";
+      else if (finalStart === firstDay && finalEnd === lastDay)
+        filterText = "เดือนนี้";
+
+      document.getElementById("currentBookingFilterText").textContent =
+        filterText;
+    }
 
     currentSession = session;
+
+    const manageHeader = document.getElementById("manageHeader");
+    const isActionableRole =
+      session && (session.role === "OP" || session.role === "Owner");
+    let colSpan = 9;
+
+    if (manageHeader) {
+      if (isActionableRole) {
+        manageHeader.classList.remove("hidden");
+      } else {
+        manageHeader.classList.add("hidden");
+        colSpan = 8;
+      }
+    }
 
     // Show loading
     document.getElementById("bookingTableBody").innerHTML = `
       <tr>
-        <td colspan="9" class="px-6 py-12 text-center">
+        <td colspan="${colSpan}" class="px-6 py-12 text-center">
           <div class="flex flex-col items-center justify-center space-y-3">
             <div class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div>
             <p class="text-gray-400 text-sm font-medium animate-pulse">กำลังดึงข้อมูลการจอง...</p>
@@ -1491,13 +1586,13 @@
           showToast("เกิดข้อผิดพลาด: " + error.message, "error");
           document.getElementById("bookingTableBody").innerHTML = `
             <tr>
-              <td colspan="9" class="px-6 py-8 text-center text-red-500">
+              <td colspan="${colSpan}" class="px-6 py-8 text-center text-red-500">
                 เกิดข้อผิดพลาด: ${error.message}
               </td>
             </tr>
           `;
         })
-        .getAllBookings(session.sessionToken);
+        .getAllBookings(session.sessionToken, finalStart, finalEnd);
     });
   }
 
@@ -1537,11 +1632,16 @@
     const gridBody = document.getElementById("bookingGridBody");
     const hasData = bookings && bookings.length > 0;
 
+    const isActionableRole =
+      currentSession &&
+      (currentSession.role === "OP" || currentSession.role === "Owner");
+    const colSpan = isActionableRole ? 9 : 8;
+
     // 1. Render Table View (Desktop)
     if (!hasData) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="9" class="px-4 py-8 text-center text-gray-500">
+          <td colspan="${colSpan}" class="px-4 py-8 text-center text-gray-500">
             ไม่พบข้อมูลการจอง
           </td>
         </tr>
@@ -1558,13 +1658,15 @@
             !isCompleted &&
             currentSession &&
             (currentSession.role === "Owner" ||
-              booking.createdBy === currentSession.username);
+              (currentSession.role === "OP" &&
+                booking.createdBy === currentSession.username));
 
           const canDelete =
             !isCancelled &&
             currentSession &&
             (currentSession.role === "Owner" ||
-              booking.createdBy === currentSession.username);
+              (currentSession.role === "OP" &&
+                booking.createdBy === currentSession.username));
 
           let actionButtons = "";
 
@@ -1668,13 +1770,15 @@
               !isCompleted &&
               currentSession &&
               (currentSession.role === "Owner" ||
-                booking.createdBy === currentSession.username);
+                (currentSession.role === "OP" &&
+                  booking.createdBy === currentSession.username));
 
             const canDelete =
               !isCancelled &&
               currentSession &&
               (currentSession.role === "Owner" ||
-                booking.createdBy === currentSession.username);
+                (currentSession.role === "OP" &&
+                  booking.createdBy === currentSession.username));
 
             let actionButtons = "";
 
@@ -1813,8 +1917,11 @@
         if (bookingDate && bookingDate.includes("/")) {
           const parts = bookingDate.split("/");
           if (parts.length === 3) {
-            // Convert DD/MM/YYYY to YYYY-MM-DD
-            const comparableDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            // Convert DD/MM/YYYY to YYYY-MM-DD correctly with padding
+            const y = parts[2];
+            const m = parts[1].padStart(2, "0");
+            const d = parts[0].padStart(2, "0");
+            const comparableDate = `${y}-${m}-${d}`;
             matchDate =
               (!dateFrom || comparableDate >= dateFrom) &&
               (!dateTo || comparableDate <= dateTo);
@@ -2002,8 +2109,15 @@
     document.getElementById("bookingForm").reset();
     document.getElementById("bookingId").value = "";
 
-    // Set default booking date to today
-    document.getElementById("bookingDate").valueAsDate = new Date();
+    // Set default booking date to today (Local Time)
+    const today = new Date();
+    // Adjust for timezone to ensure we get the correct local YYYY-MM-DD
+    const localISOTime = new Date(
+      today.getTime() - today.getTimezoneOffset() * 60000
+    )
+      .toISOString()
+      .split("T")[0];
+    document.getElementById("bookingDate").value = localISOTime;
 
     // Load locations and programs
     loadLocationsToSelect();
@@ -2017,6 +2131,11 @@
     document.getElementById("additionalCostAmount").textContent = "0 ฿";
     document.getElementById("discountAmount").textContent = "0 ฿";
     document.getElementById("totalAmount").textContent = "0 ฿";
+
+    // Reset VAT
+    document.getElementById("includeVat").checked = false;
+    document.getElementById("vatRow").classList.add("hidden");
+    document.getElementById("vatLabel").textContent = "ไม่รวม VAT";
 
     // Clear slip file
     clearSlipFile();
@@ -2118,11 +2237,16 @@
     const additionalCost =
       parseFloat(document.getElementById("additionalCost").value) || 0;
     const discount = parseFloat(document.getElementById("discount").value) || 0;
+    const includeVat = document.getElementById("includeVat").checked;
 
     // Calculate subtotals
     const adultSubtotal = adults * adultPrice;
     const childSubtotal = children * childPrice;
-    const total = adultSubtotal + childSubtotal + additionalCost - discount;
+    const subtotal = adultSubtotal + childSubtotal + additionalCost - discount;
+
+    // Calculate VAT if enabled
+    const vatAmount = includeVat ? Math.round(subtotal * 0.07) : 0;
+    const total = subtotal + vatAmount;
 
     // Update adult summary
     document.getElementById(
@@ -2145,6 +2269,19 @@
     // Update discount
     document.getElementById("discountAmount").textContent =
       discount > 0 ? `${formatNumber(discount)} ฿` : "0 ฿";
+
+    // Update VAT row visibility and amount
+    const vatRow = document.getElementById("vatRow");
+    const vatLabel = document.getElementById("vatLabel");
+    if (includeVat) {
+      vatRow.classList.remove("hidden");
+      document.getElementById("vatAmount").textContent =
+        formatNumber(vatAmount) + " ฿";
+      vatLabel.textContent = "รวม VAT";
+    } else {
+      vatRow.classList.add("hidden");
+      vatLabel.textContent = "ไม่รวม VAT";
+    }
 
     // Update total
     document.getElementById("totalAmount").textContent =
@@ -2183,6 +2320,7 @@
         additionalCost:
           parseFloat(document.getElementById("additionalCost").value) || 0,
         discount: parseFloat(document.getElementById("discount").value) || 0,
+        includeVat: document.getElementById("includeVat").checked,
         agent: document.getElementById("agent").value,
         notes: document.getElementById("notes").value,
       };
@@ -2368,21 +2506,17 @@
     document.getElementById("additionalCost").value =
       booking.additionalCost || 0;
     document.getElementById("discount").value = booking.discount;
+    document.getElementById("includeVat").checked = booking.includeVat || false;
     document.getElementById("agent").value = booking.agent || "";
     document.getElementById("notes").value = booking.notes || "";
 
     // Handle existing slip
     clearSlipFile(); // Clear any previous selection
 
-    console.log("Booking data:", booking); // Debug
-    console.log("Slip URL:", booking.slipUrl); // Debug
-
     if (booking.slipUrl && booking.slipUrl.trim() !== "") {
       // Show existing slip
       const slipUploadArea = document.getElementById("slipUploadArea");
       const slipPreview = document.getElementById("slipPreview");
-
-      console.log("Showing existing slip preview"); // Debug
 
       slipUploadArea.classList.add("hidden");
       slipPreview.classList.remove("hidden");
@@ -2411,159 +2545,6 @@
 
     // Ensure modal starts at top
     const modalBody = document.getElementById("bookingModalBody");
-    if (modalBody) modalBody.scrollTop = 0;
-
-    setTimeout(() => {
-      modalContent.classList.add("modal-content-show");
-    }, 10);
-  }
-
-  /**
-   * View Booking Details
-   */
-  function viewBooking(bookingId) {
-    const booking = allBookings.find((b) => b.bookingId === bookingId);
-    if (!booking) {
-      showToast("ไม่พบข้อมูลการจอง", "error");
-      return;
-    }
-
-    document.getElementById("viewBookingId").textContent =
-      "รหัสการจอง: " + booking.bookingId;
-
-    const content = `
-      <div class="space-y-4">
-        <!-- Dates -->
-        <div class="grid grid-cols-2 gap-4">
-           <div>
-            <label class="text-xs text-gray-500 uppercase tracking-wide">รหัสการจอง</label>
-            <div class="text-sm font-bold text-gray-900 mt-1">${
-              booking.bookingId
-            }</div>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 uppercase tracking-wide">สถานะ</label>
-            <div class="mt-1">${getStatusBadge(booking.status)}</div>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 uppercase tracking-wide">วันที่จอง</label>
-            <div class="text-sm font-semibold text-gray-900 mt-1">${
-              booking.bookingDate
-            }</div>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 uppercase tracking-wide">วันที่เดินทาง</label>
-            <div class="text-sm font-semibold text-gray-900 mt-1">${
-              booking.travelDate
-            }</div>
-          </div>
-        </div>
-
-        <!-- Location & Program -->
-        <div class="bg-gray-50 rounded-xl p-4">
-          <label class="text-xs text-gray-500 uppercase tracking-wide">สถานที่และโปรแกรม</label>
-          <div class="text-sm font-bold text-gray-900 mt-1">${
-            booking.location
-          }</div>
-          <div class="text-sm text-gray-600 mt-1">${booking.program}</div>
-        </div>
-
-        <!-- Pricing Details -->
-        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-4">
-          <h3 class="font-bold text-gray-900 mb-3">รายละเอียดราคา</h3>
-          <div class="space-y-2">
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">ผู้ใหญ่ (${
-                booking.adults
-              } คน × ${formatNumber(booking.adultPrice)} ฿)</span>
-              <span class="font-bold text-gray-900">${formatNumber(
-                booking.adults * booking.adultPrice
-              )} ฿</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">เด็ก (${
-                booking.children
-              } คน × ${formatNumber(booking.childPrice)} ฿)</span>
-              <span class="font-bold text-gray-900">${formatNumber(
-                booking.children * booking.childPrice
-              )} ฿</span>
-            </div>
-            <div class="flex justify-between text-sm text-orange-600">
-              <span>ค่าใช้จ่ายเพิ่มเติม</span>
-              <span class="font-bold">${formatNumber(
-                booking.additionalCost
-              )} ฿</span>
-            </div>
-            <div class="flex justify-between text-sm text-red-600">
-              <span>ส่วนลด</span>
-              <span class="font-bold">${formatNumber(booking.discount)} ฿</span>
-            </div>
-            <div class="border-t-2 border-purple-300 pt-2 mt-2 flex justify-between">
-              <span class="font-bold text-gray-900">ยอดรวมทั้งสิ้น</span>
-              <span class="text-xl font-bold text-purple-600">${formatNumber(
-                booking.totalAmount
-              )} ฿</span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label class="text-xs text-gray-500 uppercase tracking-wide">Agent</label>
-          <div class="text-sm font-semibold text-gray-900 mt-1">${
-            booking.agent || ""
-          }</div>
-        </div>
-
-        ${
-          booking.notes
-            ? `
-        <div>
-          <label class="text-xs text-gray-500 uppercase tracking-wide">หมายเหตุ</label>
-          <div class="text-sm text-gray-700 mt-1">${booking.notes}</div>
-        </div>
-        `
-            : ""
-        }
-
-        ${
-          booking.slipUrl
-            ? `
-        <div>
-          <label class="text-xs text-gray-500 uppercase tracking-wide block mb-2">สลิปการชำระเงิน</label>
-          <a href="${booking.slipUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-            </svg>
-            ดูสลิป
-          </a>
-        </div>
-        `
-            : ""
-        }
-
-        <!-- Created/Updated Info -->
-        <div class="text-xs text-gray-500 border-t pt-4 space-y-1">
-          <div>สร้างโดย: ${booking.createdBy} (${booking.createdAt})</div>
-          ${
-            booking.updatedBy
-              ? `<div>แก้ไขล่าสุดโดย: ${booking.updatedBy} (${booking.updatedAt})</div>`
-              : ""
-          }
-        </div>
-      </div>
-    `;
-
-    document.getElementById("viewBookingContent").innerHTML = content;
-
-    const modal = document.getElementById("viewBookingModal");
-    const modalContent = document.getElementById("viewBookingModalContent");
-
-    modal.classList.remove("hidden");
-    modal.classList.add("modal-show");
-
-    // Ensure modal starts at top
-    const modalBody = document.getElementById("viewBookingModalBody");
     if (modalBody) modalBody.scrollTop = 0;
 
     setTimeout(() => {
@@ -2755,12 +2736,18 @@
   }
 
   /**
-   * View Invoice PDF
+   * View Invoice PDF (Frontend Generation)
    */
   async function viewInvoice(bookingId) {
-    const session = getSessionFromStorage();
-    if (!session) return;
+    // Get booking data from local array
+    const booking = allBookings.find((b) => b.bookingId === bookingId);
+    if (!booking) {
+      showToast("ไม่พบข้อมูลการจอง", "error");
+      return;
+    }
 
+    // Show modal and loading state
+    document.getElementById("previewModalTitle").textContent = "ใบแจ้งหนี้";
     document.getElementById("previewBookingId").textContent = "#" + bookingId;
     const modal = document.getElementById("invoicePreviewModal");
     const modalContent = document.getElementById("invoicePreviewContent");
@@ -2776,85 +2763,15 @@
       modalContent.classList.add("modal-content-show");
     }, 10);
 
-    google.script.run
-      .withSuccessHandler((response) => {
-        loading.classList.add("hidden");
-        if (response.success) {
-          const base64 = response.data.base64;
-          const binaryString = atob(base64);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-
-          // Use PDF.js to render
-          const loadingTask = pdfjsLib.getDocument({ data: bytes });
-          loadingTask.promise.then(
-            function (pdf) {
-              pdf.getPage(1).then(function (page) {
-                // Dynamic scaling for mobile responsiveness
-                const containerWidth = container.clientWidth - 40; // Subtract padding
-                const unscaledViewport = page.getViewport({ scale: 1.0 });
-                const scaleFactor = containerWidth / unscaledViewport.width;
-                const scale = Math.min(Math.max(scaleFactor, 0.5), 1.5); // Min 0.5, Max 1.5
-
-                const viewport = page.getViewport({ scale: scale });
-
-                const canvas = document.createElement("canvas");
-                const context = canvas.getContext("2d");
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                canvas.className = "shadow-md rounded bg-white mb-4";
-
-                container.appendChild(canvas);
-
-                const renderContext = {
-                  canvasContext: context,
-                  viewport: viewport,
-                };
-                page.render(renderContext);
-              });
-            },
-            function (reason) {
-              console.error(reason);
-              showToast("ไม่สามารถแสดงเอกสารได้", "error");
-            }
-          );
-
-          // Create Blob for Download
-          const file = new Blob([bytes], { type: "application/pdf" });
-          const fileURL = URL.createObjectURL(file);
-
-          // Set up download button
-          const downloadBtn = document.getElementById("downloadInvoiceBtn");
-          downloadBtn.onclick = () => {
-            const link = document.createElement("a");
-            link.href = fileURL;
-            link.download = response.data.filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          };
-
-          // Set up new tab button (Keep this but it might be blocked too, download is safer)
-          window.openInNewTab = () => {
-            const newTabLink = document.createElement("a");
-            newTabLink.href = fileURL;
-            newTabLink.target = "_blank";
-            newTabLink.click();
-          };
-        } else {
-          showToast(response.message, "error");
-          closeInvoicePreview();
-        }
-      })
-      .withFailureHandler((error) => {
-        loading.classList.add("hidden");
-        showToast("เกิดข้อผิดพลาด: " + error.message, "error");
-        closeInvoicePreview();
-      })
-      .generateInvoiceForBooking(session.sessionToken, bookingId);
+    try {
+      // Generate PDF using frontend (from PDFGenerator.html)
+      await previewInvoicePDF(booking);
+      loading.classList.add("hidden");
+    } catch (error) {
+      loading.classList.add("hidden");
+      showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+      closeInvoicePreview();
+    }
   }
 
   function closeInvoicePreview() {
@@ -2876,12 +2793,18 @@
   }
 
   /**
-   * View Receipt PDF (for Completed bookings)
+   * View Receipt PDF (Frontend Generation - for Completed bookings)
    */
   async function viewReceipt(bookingId) {
-    const session = getSessionFromStorage();
-    if (!session) return;
+    // Get booking data from local array
+    const booking = allBookings.find((b) => b.bookingId === bookingId);
+    if (!booking) {
+      showToast("ไม่พบข้อมูลการจอง", "error");
+      return;
+    }
 
+    // Show modal and loading state
+    document.getElementById("previewModalTitle").textContent = "ใบเสร็จรับเงิน";
     document.getElementById("previewBookingId").textContent = "#" + bookingId;
     const modal = document.getElementById("invoicePreviewModal");
     const modalContent = document.getElementById("invoicePreviewContent");
@@ -2897,85 +2820,15 @@
       modalContent.classList.add("modal-content-show");
     }, 10);
 
-    google.script.run
-      .withSuccessHandler((response) => {
-        loading.classList.add("hidden");
-        if (response.success) {
-          const base64 = response.data.base64;
-          const binaryString = atob(base64);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-
-          // Use PDF.js to render
-          const loadingTask = pdfjsLib.getDocument({ data: bytes });
-          loadingTask.promise.then(
-            function (pdf) {
-              pdf.getPage(1).then(function (page) {
-                // Dynamic scaling for mobile responsiveness
-                const containerWidth = container.clientWidth - 40; // Subtract padding
-                const unscaledViewport = page.getViewport({ scale: 1.0 });
-                const scaleFactor = containerWidth / unscaledViewport.width;
-                const scale = Math.min(Math.max(scaleFactor, 0.5), 1.5); // Min 0.5, Max 1.5
-
-                const viewport = page.getViewport({ scale: scale });
-
-                const canvas = document.createElement("canvas");
-                const context = canvas.getContext("2d");
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                canvas.className = "shadow-md rounded bg-white mb-4";
-
-                container.appendChild(canvas);
-
-                const renderContext = {
-                  canvasContext: context,
-                  viewport: viewport,
-                };
-                page.render(renderContext);
-              });
-            },
-            function (reason) {
-              console.error(reason);
-              showToast("ไม่สามารถแสดงเอกสารได้", "error");
-            }
-          );
-
-          // Create Blob for Download
-          const file = new Blob([bytes], { type: "application/pdf" });
-          const fileURL = URL.createObjectURL(file);
-
-          // Set up download button
-          const downloadBtn = document.getElementById("downloadInvoiceBtn");
-          downloadBtn.onclick = () => {
-            const link = document.createElement("a");
-            link.href = fileURL;
-            link.download = response.data.filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          };
-
-          // Set up new tab button
-          window.openInNewTab = () => {
-            const newTabLink = document.createElement("a");
-            newTabLink.href = fileURL;
-            newTabLink.target = "_blank";
-            newTabLink.click();
-          };
-        } else {
-          showToast(response.message, "error");
-          closeInvoicePreview();
-        }
-      })
-      .withFailureHandler((error) => {
-        loading.classList.add("hidden");
-        showToast("เกิดข้อผิดพลาด: " + error.message, "error");
-        closeInvoicePreview();
-      })
-      .generateReceiptForBooking(session.sessionToken, bookingId);
+    try {
+      // Generate PDF using frontend (from PDFGenerator.html)
+      await previewReceiptPDF(booking);
+      loading.classList.add("hidden");
+    } catch (error) {
+      loading.classList.add("hidden");
+      showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+      closeInvoicePreview();
+    }
   }
 
   /**
@@ -2998,7 +2851,7 @@
             <!-- 1. Booking Information -->
             <div class="space-y-4">
                 <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">ข้อมูลการจอง</h4>
-                
+
                 <div class="bg-gray-50 rounded-lg p-4 space-y-3">
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">รหัสการจอง</span>
@@ -3034,7 +2887,7 @@
             <!-- 2. Program & Location Info -->
             <div class="space-y-4">
                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">โปรแกรมและสถานที่</h4>
-               
+
                <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg p-4">
                   <div class="flex items-start gap-3">
                      <div class="mt-1 bg-white p-2 rounded-lg shadow-sm text-purple-600">
@@ -3051,6 +2904,19 @@
                      </div>
                   </div>
                </div>
+                <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 mt-3">
+                    <div class="flex items-center gap-3">
+                       <div class="bg-white p-1.5 rounded-lg shadow-sm text-orange-500">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                       </div>
+                       <div>
+                          <p class="text-xs text-orange-600 font-bold uppercase">Agent</p>
+                          <p class="text-sm font-bold text-gray-900">${
+                            booking.agent || "-"
+                          }</p>
+                       </div>
+                    </div>
+                 </div>
             </div>
         </div>
 
@@ -3111,15 +2977,36 @@
                            booking.additionalCosts || 0
                          ).toLocaleString()} ฿</span>
                      </div>
-                     <div class="flex justify-between text-sm">
+                    ${
+                      booking.includeVat
+                        ? `
+                      <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">VAT 7%</span>
+                        <span class="font-semibold text-gray-900"
+                          >${Number(
+                            Math.round(
+                              ((booking.adults || 0) * booking.adultPrice +
+                                (booking.children || 0) * booking.childPrice +
+                                (booking.additionalCost || 0) -
+                                (booking.discount || 0)) *
+                                0.07
+                            )
+                          ).toLocaleString()}
+                          ฿</span
+                        >
+                      </div>
+                      `
+                        : ""
+                    }
+                      <div class="flex justify-between text-sm">
                          <span class="text-gray-600">ส่วนลด</span>
-                         <span class="font-semibold text-red-600">-${Number(
+                         <span class="font-semibold text-red-600">${Number(
                            booking.discount || 0
                          ).toLocaleString()} ฿</span>
                      </div>
                      <div class="pt-2 mt-2 border-t border-green-200 flex justify-between">
                          <span class="font-bold text-gray-900">ยอดรวม</span>
-                         <span class="font-bold text-green-600 text-lg">${Number(
+                         <span class="font-bold text-gray-900 text-lg">${Number(
                            booking.totalAmount
                          ).toLocaleString()} ฿</span>
                      </div>
@@ -3151,21 +3038,31 @@
             : ""
         }
 
-        <!-- 6. Cancellation Reason (if cancelled) -->
+        <!-- 6. History Reason / Cancellation Reason -->
         ${
-          booking.status === "Cancel" && booking.cancelReason
+          booking.reason
             ? `
         <div>
-            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">เหตุผลการยกเลิก</h4>
-            <div class="bg-red-50 border border-red-100 rounded-lg p-3 text-sm text-red-800 flex items-start gap-2">
-                 <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                 <p>${booking.cancelReason}</p>
+            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">
+              ${
+                booking.status === "Cancel"
+                  ? "เหตุผลการยกเลิก"
+                  : "บันทึกประวัติ"
+              }
+            </h4>
+            <div class="${
+              booking.status === "Cancel"
+                ? "bg-red-50 border-red-100 text-red-800"
+                : "bg-gray-50 border-gray-200 text-gray-800"
+            } border rounded-lg p-3 text-sm flex items-start gap-2">
+                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 <p>${booking.reason}</p>
             </div>
         </div>
         `
             : ""
         }
-        
+
       </div>
     `;
 

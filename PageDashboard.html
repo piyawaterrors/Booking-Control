@@ -697,13 +697,26 @@
       endDateEl.value = formatDateForInput(lastDay);
     }
 
-    // Default to this month if no dates provided
-    if (!startDate || !endDate) {
+    // Default to this month if parameters are undefined (e.g. initial load or return to page)
+    if (startDate === undefined || endDate === undefined) {
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       startDate = formatDateForInput(firstDay);
       endDate = formatDateForInput(lastDay);
+
+      if (startDateEl) startDateEl.value = startDate;
+      if (endDateEl) endDateEl.value = endDate;
+
+      // Update UI Text and State
+      const filterTextEl = document.getElementById("currentFilterText");
+      if (filterTextEl) filterTextEl.textContent = "เดือนนี้";
+
+      currentFilter = {
+        type: "month",
+        startDate: startDate,
+        endDate: endDate,
+      };
     }
 
     // Show loading skeletons
@@ -789,7 +802,7 @@
       return;
     }
 
-    const maxAmount = programs[0]?.amount || 1;
+    const totalAmount = programs.reduce((sum, p) => sum + (p.amount || 0), 0);
     const colors = [
       "bg-purple-500",
       "bg-blue-500",
@@ -800,7 +813,8 @@
 
     container.innerHTML = programs
       .map((program, index) => {
-        const percentage = (program.amount / maxAmount) * 100;
+        const percentage =
+          totalAmount > 0 ? (program.amount / totalAmount) * 100 : 0;
         return `
         <div class="space-y-2">
           <div class="flex items-center justify-between">
@@ -859,7 +873,7 @@
     container.innerHTML = agents
       .map(([agent, amount], index) => {
         const percentage = (amount / total) * 100;
-        const barWidth = (amount / maxAmount) * 100;
+        const barWidth = percentage;
 
         return `
         <div class="space-y-2">
@@ -915,7 +929,7 @@
     container.innerHTML = locations
       .map(([location, amount], index) => {
         const percentage = (amount / total) * 100;
-        const barWidth = (amount / maxAmount) * 100;
+        const barWidth = percentage;
 
         return `
         <div class="space-y-2">
