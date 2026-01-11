@@ -1621,6 +1621,7 @@ function getDashboardData(sessionToken, startDate, endDate) {
       CONFIG.ROLES.OWNER,
       CONFIG.ROLES.COST,
       CONFIG.ROLES.ADMIN,
+      CONFIG.ROLES.OP,
     ];
     if (!allowedRoles.includes(session.role)) {
       return { success: false, message: "ไม่มีสิทธิ์เข้าถึง Dashboard" };
@@ -2341,6 +2342,7 @@ function getAllBookings(sessionToken, startDate, endDate) {
       CONFIG.ROLES.ADMIN,
       CONFIG.ROLES.AR_AP,
       CONFIG.ROLES.COST,
+      CONFIG.ROLES.OP,
     ];
     const canViewAll = viewingAllRoles.includes(session.role);
     const currentUser = session.username;

@@ -666,10 +666,12 @@
         }
       }
 
-      // Rule 2: OP Role Restriction (Only Booking)
+      // Rule 2: OP Role Restriction (Removed to allow seeing all data)
+      /*
       if (role === "OP" && pageName !== "booking") {
         isVisible = false;
       }
+      */
 
       // Rule 3: AR_AP/Cost Role - Restrictions
       if (role === "AR_AP" || role === "Cost") {
