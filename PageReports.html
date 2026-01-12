@@ -99,15 +99,34 @@
             ยอดขายรายวันตามสถานที่
           </h3>
           <p class="text-xs text-gray-500 mt-1">เฉพาะสถานะ Completed</p>
-          <div class="mt-2">
+          <div class="mt-2 flex flex-wrap items-center gap-2">
             <select
               id="sortDailySales"
               onchange="sortAndRenderDailySales()"
-              class="input-modern select-modern w-full sm:w-auto"
+              class="input-modern select-modern w-full sm:w-auto text-sm"
             >
               <option value="sales">เรียงตามยอดขาย</option>
               <option value="count">เรียงตามยอดการจอง</option>
             </select>
+            <button
+              onclick="exportDailySalesToExcel()"
+              class="px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all font-medium text-sm flex items-center gap-2"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                ></path>
+              </svg>
+              Export Excel
+            </button>
           </div>
         </div>
         <div
@@ -297,8 +316,8 @@
     endDate: null,
   };
 
-  let dailySalesData = [];
-  let programSummaryData = [];
+  window.dailySalesData = [];
+  window.programSummaryData = [];
 
   /**
    * Format Date for Input (YYYY-MM-DD)
@@ -453,7 +472,7 @@
       .then(([dailySalesResponse, programSummaryResponse]) => {
         // Both reports loaded successfully, now render them together
         if (dailySalesResponse.success) {
-          dailySalesData = dailySalesResponse.data.dailySales || [];
+          window.dailySalesData = dailySalesResponse.data.dailySales || [];
           sortAndRenderDailySales();
         } else {
           showToast(
@@ -463,7 +482,8 @@
         }
 
         if (programSummaryResponse.success) {
-          programSummaryData = programSummaryResponse.data.programSummary || [];
+          window.programSummaryData =
+            programSummaryResponse.data.programSummary || [];
           sortAndRenderProgramSummary();
         } else {
           showToast(
@@ -492,28 +512,103 @@
   /**
    * Sort and Render Daily Sales
    */
-  function sortAndRenderDailySales() {
+  window.sortAndRenderDailySales = function () {
     const sortBy = document.getElementById("sortDailySales").value;
-    if (sortBy === "sales") {
-      dailySalesData.sort((a, b) => b.totalSales - a.totalSales);
-    } else {
-      dailySalesData.sort((a, b) => b.bookingCount - a.bookingCount);
-    }
-    renderDailySales(dailySalesData);
-  }
+    const rawData = window.dailySalesData || [];
+
+    // Clone and Sort
+    const data = [...rawData].sort((a, b) => {
+      if (sortBy === "sales") {
+        const valA = Number(a.totalSales) || 0;
+        const valB = Number(b.totalSales) || 0;
+        if (valB !== valA) return valB - valA;
+      } else {
+        const valA = Number(a.bookingCount) || 0;
+        const valB = Number(b.bookingCount) || 0;
+        if (valB !== valA) return valB - valA;
+      }
+      // ลำดับรอง: เรียงตามชื่อสถานที่
+      return (a.location || "").localeCompare(b.location || "");
+    });
+
+    console.log("Sort Daily Sales by:", sortBy, "Result:", data);
+    renderDailySales(data);
+  };
 
   /**
    * Sort and Render Program Summary
    */
-  function sortAndRenderProgramSummary() {
+  window.sortAndRenderProgramSummary = function () {
     const sortBy = document.getElementById("sortProgramSummary").value;
-    if (sortBy === "sales") {
-      programSummaryData.sort((a, b) => b.totalRevenue - a.totalRevenue);
-    } else {
-      programSummaryData.sort((a, b) => b.bookingCount - a.bookingCount);
+    const rawData = window.programSummaryData || [];
+
+    // Clone and Sort
+    const data = [...rawData].sort((a, b) => {
+      if (sortBy === "sales") {
+        const valA = Number(a.totalRevenue) || 0;
+        const valB = Number(b.totalRevenue) || 0;
+        if (valB !== valA) return valB - valA;
+      } else {
+        const valA = Number(a.bookingCount) || 0;
+        const valB = Number(b.bookingCount) || 0;
+        if (valB !== valA) return valB - valA;
+      }
+      // ลำดับรอง: เรียงตามชื่อโปรแกรม
+      return (a.program || "").localeCompare(b.program || "");
+    });
+
+    console.log("Sort Program Summary by:", sortBy, "Result:", data);
+    renderProgramSummary(data);
+  };
+
+  /**
+   * Export Daily Sales to Excel (CSV)
+   */
+  window.exportDailySalesToExcel = function () {
+    const data = window.dailySalesData || [];
+    if (data.length === 0) {
+      showToast("ไม่มีข้อมูลสำหรับส่งออก", "warning");
+      return;
     }
-    renderProgramSummary(programSummaryData);
-  }
+
+    // 1. Prepare CSV Header (BOM for Thai support in Excel)
+    let csvContent = "\uFEFF";
+    csvContent += "สถานที่,ผู้ใหญ่,เด็ก,รวมทั้งหมด,รายการจอง,ยอดขาย\n";
+
+    // 2. Prepare Data Rows
+    data.forEach((item) => {
+      const location = (item.location || "ไม่ระบุ").replace(/,/g, " ");
+      const adults = item.totalAdults || 0;
+      const children = item.totalChildren || 0;
+      const total = adults + children;
+      const count = item.bookingCount || 0;
+      const sales = item.totalSales || 0;
+
+      csvContent += `${location},${adults},${children},${total},${count},${sales}\n`;
+    });
+
+    // 3. Create Download Link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    // Get filter text for filename
+    const filterText =
+      document.getElementById("reportFilterText").textContent || "report";
+    const filename = `รายงานยอดขายตามสถานที่_${filterText.replace(
+      /[\/\\\s-]/g,
+      "_"
+    )}.csv`;
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast("ส่งออกข้อมูลเรียบร้อยแล้ว", "success");
+  };
 
   /**
    * Render Daily Sales by Location
@@ -567,7 +662,25 @@
                 <div class="font-bold text-gray-800 mb-1">${
                   item.location || "ไม่ระบุ"
                 }</div>
-                <div class="flex items-center gap-4 text-xs text-gray-500">
+                <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gray-500">
+                  <span class="flex items-center">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    ผู้ใหญ่ ${item.totalAdults} คน
+                  </span>
+                  <span class="flex items-center">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    เด็ก ${item.totalChildren} คน
+                  </span>
+                  <span class="flex items-center">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    ทั้งหมด ${item.totalAdults + item.totalChildren} คน
+                  </span>
                   <span class="flex items-center">
                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z"></path>
@@ -657,6 +770,12 @@
                   </span>
                   <span class="flex items-center">
                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    รวมทั้งหมด ${item.totalAdults + item.totalChildren} คน
+                  </span>
+                  <span class="flex items-center">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z"></path>
                     </svg>
                     ${item.bookingCount} รายการ
@@ -680,8 +799,12 @@
     `;
   }
 
-  // Export to window
-  if (typeof window.loadReports === "undefined") {
-    window.loadReports = loadReports;
-  }
+  // Export to window for global access (especially for event handlers)
+  window.loadReports = loadReports;
+  window.setReportFilter = setReportFilter;
+  window.applyCustomReportFilter = applyCustomReportFilter;
+  window.sortAndRenderDailySales = sortAndRenderDailySales;
+  window.sortAndRenderProgramSummary = sortAndRenderProgramSummary;
+  window.renderDailySales = renderDailySales;
+  window.renderProgramSummary = renderProgramSummary;
 </script>

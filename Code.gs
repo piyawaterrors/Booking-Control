@@ -3348,6 +3348,8 @@ function getDailySalesReport(sessionToken, startDate, endDate) {
       }
 
       const location = row[3] || "ไม่ระบุ"; // Column D: Location
+      const adults = Number(row[5]) || 0; // Column F: Adult
+      const children = Number(row[6]) || 0; // Column G: Child
       const totalAmount = Number(row[19]) || 0; // Column T: Total Amount
 
       // Filter: Only Completed status
@@ -3363,11 +3365,15 @@ function getDailySalesReport(sessionToken, startDate, endDate) {
           location: location,
           bookingCount: 0,
           totalSales: 0,
+          totalAdults: 0,
+          totalChildren: 0,
         };
       }
 
       locationSales[location].bookingCount++;
       locationSales[location].totalSales += totalAmount;
+      locationSales[location].totalAdults += adults;
+      locationSales[location].totalChildren += children;
     }
 
     // Convert to array and sort by total sales (descending)
