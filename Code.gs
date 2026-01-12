@@ -952,165 +952,6 @@ function verifyPasswordHash() {
   };
 }
 
-/**
- * Create New User
- */
-function createUser(userData) {
-  if (!hasRole(CONFIG.ROLES.OWNER)) {
-    return { success: false, message: "ไม่มีสิทธิ์เข้าถึง" };
-  }
-
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.USERS);
-
-    // Check if username or email already exists
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][1] === userData.email || data[i][2] === userData.username) {
-        return { success: false, message: "อีเมลหรือชื่อผู้ใช้นี้มีอยู่แล้ว" };
-      }
-    }
-
-    const userId = generateUniqueId("USR");
-    const defaultPassword = userData.phone || CONFIG.DEFAULT_PASSWORD;
-    const hashedPassword = hashPassword(defaultPassword);
-    const timestamp = getCurrentTimestamp();
-
-    const newRow = [
-      userId, // A: รหัสผู้ใช้
-      userData.email, // B: อีเมล
-      userData.username, // C: ชื่อผู้ใช้
-      hashedPassword, // D: รหัสผ่าน
-      userData.fullName, // E: ชื่อ-นามสกุล
-      userData.phone ? "'" + userData.phone : "", // F: เบอร์โทร (Force text to keep leading zero)
-      userData.role, // G: บทบาท
-      "เปิดใช้งาน", // H: สถานะการใช้งาน
-      timestamp, // I: วันที่สร้าง
-      timestamp, // J: วันที่แก้ไขล่าสุด
-    ];
-
-    sheet.appendRow(newRow);
-
-    return {
-      success: true,
-      message: "เพิ่มพนักงานสำเร็จ",
-      data: { userId: userId },
-    };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
-
-/**
- * Update User
- */
-function updateUser(userId, userData) {
-  if (!hasRole(CONFIG.ROLES.OWNER)) {
-    return { success: false, message: "ไม่มีสิทธิ์เข้าถึง" };
-  }
-
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.USERS);
-    const data = sheet.getDataRange().getValues();
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === userId) {
-        const timestamp = getCurrentTimestamp();
-
-        // Update only provided fields
-        if (userData.email) sheet.getRange(i + 1, 2).setValue(userData.email);
-        if (userData.username)
-          sheet.getRange(i + 1, 3).setValue(userData.username);
-        if (userData.fullName)
-          sheet.getRange(i + 1, 5).setValue(userData.fullName);
-        if (userData.phone)
-          sheet.getRange(i + 1, 6).setValue("'" + userData.phone);
-        if (userData.role) sheet.getRange(i + 1, 7).setValue(userData.role);
-        if (userData.status) sheet.getRange(i + 1, 8).setValue(userData.status);
-
-        // Update timestamp
-        sheet.getRange(i + 1, 10).setValue(timestamp);
-
-        return { success: true, message: "อัพเดทข้อมูลสำเร็จ" };
-      }
-    }
-
-    return { success: false, message: "ไม่พบผู้ใช้" };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
-
-/**
- * Reset User Password
- */
-function resetUserPassword(userId) {
-  if (!hasRole(CONFIG.ROLES.OWNER)) {
-    return { success: false, message: "ไม่มีสิทธิ์เข้าถึง" };
-  }
-
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.USERS);
-    const data = sheet.getDataRange().getValues();
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === userId) {
-        const phone = data[i][5]; // Column F: เบอร์โทร
-        const defaultPassword = phone || CONFIG.DEFAULT_PASSWORD;
-        const hashedPassword = hashPassword(defaultPassword);
-        const timestamp = getCurrentTimestamp();
-
-        sheet.getRange(i + 1, 4).setValue(hashedPassword);
-        sheet.getRange(i + 1, 10).setValue(timestamp);
-
-        return {
-          success: true,
-          message:
-            "รีเซ็ตรหัสผ่านสำเร็จ รหัสผ่านใหม่: " +
-            (phone || CONFIG.DEFAULT_PASSWORD),
-        };
-      }
-    }
-
-    return { success: false, message: "ไม่พบผู้ใช้" };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
-
-/**
- * Delete User (Soft Delete)
- */
-function deleteUser(userId) {
-  if (!hasRole(CONFIG.ROLES.OWNER)) {
-    return { success: false, message: "ไม่มีสิทธิ์เข้าถึง" };
-  }
-
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.USERS);
-    const data = sheet.getDataRange().getValues();
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === userId) {
-        // Check if user is Owner
-        if (data[i][6] === CONFIG.ROLES.OWNER) {
-          return { success: false, message: "ไม่สามารถลบ Owner ได้" };
-        }
-
-        const timestamp = getCurrentTimestamp();
-        sheet.getRange(i + 1, 8).setValue("ปิดใช้งาน");
-        sheet.getRange(i + 1, 10).setValue(timestamp);
-
-        return { success: true, message: "ลบพนักงานสำเร็จ" };
-      }
-    }
-
-    return { success: false, message: "ไม่พบผู้ใช้" };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
-
 // ========================================
 // BOOKING MANAGEMENT
 // ========================================
@@ -1185,7 +1026,7 @@ function createLocation(sessionToken, locationData) {
       locationId,
       locationData.locationName,
       locationData.cellName || "",
-      "เปิดใช้งาน", // Default status
+      locationData.status || "เปิดใช้งาน", // Default status
       timestamp,
       timestamp,
     ];
@@ -2003,7 +1844,7 @@ function createUser(sessionToken, userData) {
       userData.fullName,
       userData.phone ? "'" + userData.phone : "", // เบอร์โทร (Force text to keep leading zero)
       userData.role,
-      "เปิดใช้งาน",
+      userData.status || "เปิดใช้งาน",
       now,
       now,
     ];

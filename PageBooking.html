@@ -2177,32 +2177,40 @@
   /**
    * Load Locations to Select
    */
-  function loadLocationsToSelect() {
+  function loadLocationsToSelect(selectedValue) {
     const select = document.getElementById("location");
     select.innerHTML = '<option value="">เลือกสถานที่</option>';
 
     allLocations.forEach((loc) => {
-      const option = document.createElement("option");
-      option.value = loc.locationName;
-      option.textContent = loc.locationName;
-      select.appendChild(option);
+      // แสดงเฉพาะที่เปิดใช้งาน หรือเป็นค่าที่เลือกไว้แล้ว (กรณีแก้ไข)
+      if (loc.isActive || loc.locationName === selectedValue) {
+        const option = document.createElement("option");
+        option.value = loc.locationName;
+        option.textContent =
+          loc.locationName + (loc.isActive ? "" : " (ปิดใช้งาน)");
+        select.appendChild(option);
+      }
     });
   }
 
   /**
    * Load Programs to Select
    */
-  function loadProgramsToSelect() {
+  function loadProgramsToSelect(selectedValue) {
     const select = document.getElementById("program");
     select.innerHTML = '<option value="">เลือกโปรแกรม</option>';
 
     allPrograms.forEach((prog) => {
-      const option = document.createElement("option");
-      option.value = prog.programId;
-      option.textContent = prog.programId;
-      option.dataset.adultPrice = prog.adultPrice;
-      option.dataset.childPrice = prog.childPrice;
-      select.appendChild(option);
+      // แสดงเฉพาะที่เปิดใช้งาน หรือเป็นค่าที่เลือกไว้แล้ว (กรณีแก้ไข)
+      if (prog.isActive || prog.programId === selectedValue) {
+        const option = document.createElement("option");
+        option.value = prog.programId;
+        option.textContent =
+          prog.programId + (prog.isActive ? "" : " (ปิดใช้งาน)");
+        option.dataset.adultPrice = prog.adultPrice;
+        option.dataset.childPrice = prog.childPrice;
+        select.appendChild(option);
+      }
     });
   }
 
@@ -2492,9 +2500,9 @@
       booking.travelDate
     );
 
-    // Load locations and programs first (ใช้ข้อมูลที่มีอยู่แล้วใน allLocations และ allPrograms)
-    loadLocationsToSelect();
-    loadProgramsToSelect();
+    // Load locations and programs with current values to ensure they show up even if inactive
+    loadLocationsToSelect(booking.location);
+    loadProgramsToSelect(booking.program);
 
     // Set location and program after options are loaded
     document.getElementById("location").value = booking.location;
