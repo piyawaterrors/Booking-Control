@@ -183,7 +183,7 @@
           <th
             class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
-            รหัสการจอง
+            AGENT
           </th>
           <th
             class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
@@ -655,7 +655,7 @@
         </div>
       </div>
 
-      <form onsubmit="event.preventDefault();" class="space-y-6">
+      <form onsubmit="event.preventDefault()" class="space-y-6">
         <!-- 2. Customer Info Zone -->
         <div class="space-y-4">
           <h4
@@ -937,30 +937,9 @@
 </div>
 
 <script>
-  let allPayments = [];
-  let allLocationsPaymentFilter = [];
-  let currentPayment = null;
-
-  /**
-   * Format Date for Input (YYYY-MM-DD)
-   */
-  function formatDateForInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  /**
-   * Format Date to Thai (DD/MM/YYYY)
-   */
-  function formatDateThai(date) {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
-
+  var allPayments = [];
+  var allLocationsPaymentFilter = [];
+  var currentPayment = null;
   /**
    * Set Payment Date Filter (Quick Filters)
    */
@@ -977,7 +956,7 @@
         break;
 
       case "today":
-        startDate = endDate = formatDateForInput(today);
+        startDate = endDate = formatDateToISO(today);
         document.getElementById("currentPaymentFilterText").textContent =
           "วันนี้";
         break;
@@ -985,8 +964,8 @@
       case "month":
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        startDate = formatDateForInput(firstDay);
-        endDate = formatDateForInput(lastDay);
+        startDate = formatDateToISO(firstDay);
+        endDate = formatDateToISO(lastDay);
         document.getElementById("currentPaymentFilterText").textContent =
           "เดือนนี้";
         break;
@@ -994,8 +973,8 @@
       case "year":
         const yearStart = new Date(today.getFullYear(), 0, 1);
         const yearEnd = new Date(today.getFullYear(), 11, 31);
-        startDate = formatDateForInput(yearStart);
-        endDate = formatDateForInput(yearEnd);
+        startDate = formatDateToISO(yearStart);
+        endDate = formatDateToISO(yearEnd);
         document.getElementById("currentPaymentFilterText").textContent =
           "ปีนี้";
         break;
@@ -1027,11 +1006,8 @@
     }
 
     // Update filter display
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    document.getElementById(
-      "currentPaymentFilterText"
-    ).textContent = `${formatDateThai(start)} - ${formatDateThai(end)}`;
+    document.getElementById("currentPaymentFilterText").textContent =
+      `${formatDateThai(startDate)} - ${formatDateThai(endDate)}`;
 
     // Trigger load (fetch from server)
     loadPayments(startDate, endDate);
@@ -1077,8 +1053,8 @@
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      startDate = formatDateForInput(firstDay);
-      endDate = formatDateForInput(lastDay);
+      startDate = formatDateToISO(firstDay);
+      endDate = formatDateToISO(lastDay);
 
       if (startDateEl) startDateEl.value = startDate;
       if (endDateEl) endDateEl.value = endDate;
@@ -1112,7 +1088,7 @@
         session.sessionToken,
         null,
         finalStartDate,
-        finalEndDate
+        finalEndDate,
       );
   }
 
@@ -1133,7 +1109,6 @@
 
   function onPaymentsLoaded(response) {
     hidePaymentLoading();
-
     if (!response.success) {
       showToast(response.message, "error");
       if (response.message.includes("Session")) {
@@ -1198,11 +1173,11 @@
       .map(
         (payment) => `
       <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick='viewPaymentDetail(${JSON.stringify(
-        payment
+        payment,
       ).replace(/'/g, "&#39;")})'>
         <td class="px-6 py-4">
           <div class="text-sm font-bold text-gray-900">${
-            payment.bookingId
+            payment.agent || "-"
           }</div>
           <div class="text-xs text-gray-500">โดย: ${payment.createdBy}</div>
         </td>
@@ -1216,11 +1191,11 @@
         </td>
         <td class="px-6 py-4">
           <div class="text-sm font-bold text-gray-900">${Number(
-            payment.totalAmount
+            payment.totalAmount,
           ).toLocaleString()} ฿</div>
           <div class="text-xs text-gray-500">${payment.adults} ผู้ใหญ่, ${
-          payment.children
-        } เด็ก</div>
+            payment.children
+          } เด็ก</div>
         </td>
         <td class="px-6 py-4 text-center">
           ${getStatusBadge(payment.status)}
@@ -1242,7 +1217,7 @@
             payment.status !== "Cancel"
               ? `<button 
             onclick='event.stopPropagation(); openUpdateStatusModal(${JSON.stringify(
-              payment
+              payment,
             ).replace(/'/g, "&#39;")})' 
             class="inline-flex text-sm items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-all font-medium"
           >
@@ -1255,7 +1230,7 @@
           }
         </td>
       </tr>
-    `
+    `,
       )
       .join("");
 
@@ -1270,8 +1245,8 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow relative overflow-hidden group">
               <div class="flex justify-between items-start mb-3">
                 <div>
-                  <span class="text-xs font-bold text-gray-400">#${
-                    payment.bookingId
+                  <span class="text-xs font-bold text-gray-400">AGENT: ${
+                    payment.agent || "-"
                   }</span>
                   <h3 class="font-semibold text-gray-800 line-clamp-1">${
                     payment.program || "-"
@@ -1288,40 +1263,62 @@
                 <div class="flex justify-between">
                   <span class="text-gray-500">เดินทาง</span> 
                   <span class="font-medium text-gray-800">${
-                    payment.travelDate
+                    payment.travelDate || "-"
                   }</span>
                 </div>
                 <div class="flex justify-between">
+                  <span class="text-gray-500">โรงแรม</span>
+                  <span class="font-medium text-gray-800">${
+                    payment.hotelName || "-"
+                  }</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">เวลารับ</span>
+                  <span class="font-medium text-gray-800">${
+                    payment.pickupTime ? payment.pickupTime + " น." : "-"
+                  }</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">เลขห้อง</span>
+                  <span class="font-medium text-gray-800">${
+                    payment.roomNumber || "-"
+                  }</span>
+                </div>
+                <div class="flex justify-between pt-1 border-t border-gray-100 mt-1">
                   <span class="text-gray-500">จำนวนคน</span> 
                   <span class="font-medium text-gray-800">${totalPeople} คน</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-500">ยอดรวม</span> 
                   <span class="font-bold text-purple-600">${Number(
-                    payment.totalAmount
+                    payment.totalAmount,
                   ).toLocaleString()} ฿</span>
                 </div>
               </div>
 
-              <div class="flex space-x-2">
+              <div class="grid grid-cols-2 gap-2">
                 <button onclick='viewPaymentDetail(${JSON.stringify(
-                  payment
+                  payment,
                 ).replace(
                   /'/g,
-                  "&#39;"
-                )})' class="flex-1 flex items-center justify-center py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors">
-                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                  "&#39;",
+                )})' class="flex items-center justify-center py-2 bg-purple-50 text-purple-700 rounded-xl text-sm font-bold hover:bg-purple-100 transition-colors">
                   รายละเอียด
+                </button>
+                <button onclick="copyDriverInfoForpayment('${
+                  payment.bookingId
+                }', true)" class="flex items-center justify-center py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors">
+                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                  คัดลอกลง Sheet
                 </button>
                 ${
                   !isCostRole && payment.status !== "Cancel"
                     ? `<button onclick='event.stopPropagation(); openUpdateStatusModal(${JSON.stringify(
-                        payment
+                        payment,
                       ).replace(
                         /'/g,
-                        "&#39;"
-                      )})' class="flex-1 flex items-center justify-center py-2 bg-purple-50 text-purple-700 rounded-xl text-sm font-bold hover:bg-purple-100 transition-colors">
-                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        "&#39;",
+                      )})' class="col-span-2 flex items-center justify-center py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors">
                   เปลี่ยนสถานะ
                 </button>`
                     : ""
@@ -1331,6 +1328,69 @@
           `;
       })
       .join("");
+  }
+
+  /**
+   * Copy Driver Info to Clipboard
+   */
+  function copyDriverInfoForpayment(bookingId, isSheet = false) {
+    const target =
+      allPayments.find((b) => b.bookingId === bookingId) || currentPayment;
+    if (!target) return;
+
+    const totalPeople =
+      (Number(target.adults) || 0) + (Number(target.children) || 0);
+
+    let text = "";
+    if (isSheet) {
+      // Excel/Google Sheets Format (Tab-separated)
+      text = `${target.agent || ""}\t${target.vcNo || ""}\t${target.pickupTime || ""}\t${
+        target.hotelName || ""
+      }\t${target.roomNumber || ""}\t${""}\t${target.adults}\t${target.children}\t${" "}\t${target.program || ""}\t${" "}\t${
+        target.notes1 || ""
+      }`;
+    } else {
+      // Standard Format for LINE/Chat
+      text = `ข้อมูลสำหรับคนขับรถ
+-------------------
+เดินทาง: ${target.travelDate || "-"}
+โรงแรม: ${target.hotelName || "-"}
+เวลารับ: ${target.pickupTime ? target.pickupTime + " น." : "-"}
+ห้อง: ${target.roomNumber || "-"}
+VC No.: ${target.vcNo || "-"}
+จำนวนคน: ${totalPeople} คน
+หมายเหตุ: ${target.notes1 || "-"}
+-------------------`;
+    }
+
+    if (!navigator.clipboard) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        showToast("คัดลอกข้อมูลเรียบร้อยแล้ว", "success");
+      } catch (err) {
+        showToast("ไม่สามารถคัดลอกข้อมูลได้", "error");
+      }
+      document.body.removeChild(textArea);
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        showToast("คัดลอกข้อมูลเรียบร้อยแล้ว", "success");
+      })
+      .catch((err) => {
+        console.error("Clipboard error:", err);
+        showToast("ไม่สามารถคัดลอกข้อมูลได้", "error");
+      });
   }
 
   function getStatusBadge(status) {
@@ -1353,7 +1413,7 @@
       ?.value.toLowerCase();
     const statusFilter = document.getElementById("filterPaymentStatus")?.value;
     const locationFilter = document.getElementById(
-      "filterPaymentLocation"
+      "filterPaymentLocation",
     )?.value;
     const dateFrom = document.getElementById("paymentFilterDateFrom")?.value;
     const dateTo = document.getElementById("paymentFilterDateTo")?.value;
@@ -1374,7 +1434,7 @@
           p.bookingId.toLowerCase().includes(searchTerm) ||
           p.location.toLowerCase().includes(searchTerm) ||
           p.program.toLowerCase().includes(searchTerm) ||
-          (p.agent && p.agent.toLowerCase().includes(searchTerm))
+          (p.agent && p.agent.toLowerCase().includes(searchTerm)),
       );
     }
 
@@ -1421,34 +1481,30 @@
 
     currentPayment = payment;
 
-    const totalPeople = (payment.adults || 0) + (payment.children || 0);
+    const totalPeople =
+      (Number(payment.adults) || 0) + (Number(payment.children) || 0);
     const statusBadge = getStatusBadge(payment.status);
 
     const content = `
       <div class="space-y-6">
+        <!-- 1. Booking Information & Program/Location Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 1. Booking Information -->
+            <!-- Booking Information -->
             <div class="space-y-4">
                 <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">ข้อมูลการจอง</h4>
                 
                 <div class="bg-gray-50 rounded-lg p-4 space-y-3">
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">รหัสการจอง</span>
-                      <span class="text-sm font-bold text-gray-900">${
-                        payment.bookingId
-                      }</span>
+                      <span class="text-sm font-bold text-gray-900">${payment.bookingId}</span>
                    </div>
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">วันที่จอง</span>
-                      <span class="text-sm font-medium text-gray-900">${
-                        payment.bookingDate
-                      }</span>
+                      <span class="text-sm font-medium text-gray-900">${payment.bookingDate}</span>
                    </div>
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">วันที่เดินทาง</span>
-                      <span class="text-sm font-medium text-gray-900">${
-                        payment.travelDate
-                      }</span>
+                      <span class="text-sm font-medium text-gray-900">${payment.travelDate}</span>
                    </div>
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">สถานะ</span>
@@ -1456,51 +1512,108 @@
                    </div>
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">ทำรายการโดย</span>
-                      <span class="text-sm font-medium text-gray-900">${
-                        payment.createdBy
-                      }</span>
+                      <span class="text-sm font-medium text-gray-900">${payment.createdBy}</span>
                    </div>
                 </div>
             </div>
 
-            <!-- 2. Program & Location Info -->
+            <!-- Program & Location Info -->
             <div class="space-y-4">
                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">โปรแกรมและสถานที่</h4>
                
                <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg p-4">
-                  <div class="flex items-start gap-3">
+                  <div class="flex items-start gap-3 mb-3">
                      <div class="mt-1 bg-white p-2 rounded-lg shadow-sm text-purple-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                      </div>
                      <div>
                         <p class="text-xs text-purple-600 font-bold uppercase mb-0.5">สถานที่</p>
-                        <p class="text-base font-bold text-gray-900">${
-                          payment.location
-                        }</p>
-                        <p class="text-sm text-gray-600 mt-1">${
-                          payment.program
-                        }</p>
+                        <p class="text-base font-bold text-gray-900">${payment.location}</p>
+                        <p class="text-sm text-gray-600 mt-1">${payment.program}</p>
                      </div>
                   </div>
                </div>
 
-               <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 mt-3">
-                    <div class="flex items-center gap-3">
-                       <div class="bg-white p-1.5 rounded-lg shadow-sm text-orange-500">
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                       </div>
-                       <div>
-                          <p class="text-xs text-orange-600 font-bold uppercase">Agent</p>
-                          <p class="text-sm font-bold text-gray-900">${
-                            payment.agent || "-"
-                          }</p>
-                       </div>
-                    </div>
-                 </div>
+               <!-- Agent Info -->
+               <div class="bg-orange-50 border border-orange-100 rounded-lg p-4">
+                  <div class="flex items-center gap-3">
+                     <div class="bg-white p-2 rounded-lg shadow-sm text-orange-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                     </div>
+                     <div>
+                        <p class="text-xs text-orange-600 font-bold uppercase mb-0.5">AGENT</p>
+                        <p class="text-base font-bold text-gray-900">${payment.agent || "-"}</p>
+                     </div>
+                  </div>
+               </div>
             </div>
         </div>
 
-        <!-- 3. Passenger & Payment Details -->
+        <!-- Driver Information Section (Special Highlight) -->
+        <div class="space-y-4">
+            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2 flex flex-wrap justify-between items-center gap-2">
+                <span>ข้อมูลสำหรับคนขับรถ</span>
+                <div class="flex gap-2">
+                  <button onclick="copyDriverInfoForpayment('${
+                    payment.bookingId
+                  }', true)" class="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all border border-green-100 group">
+                      <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5m11 2a2 2 0 100-4 2 2 0 000 4zm-1.657-3.03l-1.414-1.414m2.828 0a2 2 0 01.001 2.829l-1.25 1.25a2 2 0 01-2.829 0l-1.414-1.414"></path></svg>
+                      <span class="text-xs font-bold">คัดลอกลง Sheet</span>
+                  </button>
+                </div>
+            </h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- VC No. & Pickup Time -->
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
+                   <div class="flex items-start gap-3">
+                      <div class="mt-1 bg-white p-2 rounded-lg shadow-sm text-purple-600">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                      </div>
+                      <div class="flex-1">
+                         <p class="text-xs text-purple-600 font-bold uppercase mb-1">VC No.</p>
+                         <p class="text-base font-bold text-gray-900">${payment.vcNo || "-"}</p>
+                         <div class="mt-2 pt-2 border-t border-purple-200">
+                            <p class="text-xs text-purple-600 font-bold uppercase mb-1">เวลารับ</p>
+                            <p class="text-lg font-bold text-purple-700">${payment.pickupTime ? payment.pickupTime + " น." : "-"}</p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                <!-- Hotel & Room -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
+                   <div class="flex items-start gap-3">
+                      <div class="mt-1 bg-white p-2 rounded-lg shadow-sm text-blue-600">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                      </div>
+                      <div class="flex-1">
+                         <p class="text-xs text-blue-600 font-bold uppercase mb-1">โรงแรม</p>
+                         <p class="text-base font-bold text-gray-900">${payment.hotelName || "-"}</p>
+                         <div class="mt-2 pt-2 border-t border-blue-200">
+                            <p class="text-xs text-blue-600 font-bold uppercase mb-1">เลขห้อง</p>
+                            <p class="text-lg font-bold text-blue-700">${payment.roomNumber || "-"}</p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                <!-- Notes for Driver -->
+                <div class="md:col-span-2 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-lg p-4">
+                   <div class="flex items-start gap-3">
+                      <div class="mt-1 bg-white p-2 rounded-lg shadow-sm text-amber-600">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                      </div>
+                      <div class="flex-1">
+                         <p class="text-xs text-amber-600 font-bold uppercase mb-1">หมายเหตุสำหรับคนขับ (Notes 1)</p>
+                         <p class="text-sm text-gray-700 leading-relaxed">${payment.notes1 || "-"}</p>
+                      </div>
+                   </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passenger & Payment Details -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
            <!-- Passenger Info -->
            <div class="space-y-4">
@@ -1528,66 +1641,66 @@
 
            <!-- Payment Breakdown -->
            <div class="space-y-4">
-             <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">รายละเอียดการชำระ</h4>
+             <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">รายละเอียดราคา</h4>
              <div class="bg-green-50 border border-green-100 rounded-lg p-4">
                  <div class="space-y-2">
                      <div class="flex justify-between text-sm">
                          <span class="text-gray-600">ผู้ใหญ่ (${
                            payment.adults || 0
                          } × ${Number(
-      payment.adultPrice
-    ).toLocaleString()})</span>
+                           payment.adultPrice,
+                         ).toLocaleString()})</span>
                          <span class="font-semibold text-gray-900">${Number(
-                           (payment.adults || 0) * payment.adultPrice
+                           (payment.adults || 0) * payment.adultPrice,
                          ).toLocaleString()} ฿</span>
                      </div>
                      <div class="flex justify-between text-sm">
                          <span class="text-gray-600">เด็ก (${
                            payment.children || 0
                          } × ${Number(
-      payment.childPrice
-    ).toLocaleString()})</span>
+                           payment.childPrice,
+                         ).toLocaleString()})</span>
                          <span class="font-semibold text-gray-900">${Number(
-                           (payment.children || 0) * payment.childPrice
+                           (payment.children || 0) * payment.childPrice,
                          ).toLocaleString()} ฿</span>
                      </div>
                      <div class="flex justify-between text-sm">
                          <span class="text-gray-600">ค่าใช้จ่ายเพิ่มเติม</span>
                          <span class="font-semibold text-gray-900">${Number(
-                           payment.additionalCost || 0
+                           payment.additionalCost || 0,
                          ).toLocaleString()} ฿</span>
                      </div>
-                      ${
-                        payment.includeVat
-                          ? `
-                      <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">VAT 7%</span>
-                        <span class="font-semibold text-gray-900"
-                          >${Number(
-                            Math.round(
-                              ((payment.adults || 0) * payment.adultPrice +
-                                (payment.children || 0) * payment.childPrice +
-                                (payment.additionalCost || 0) -
-                                (payment.discount || 0)) *
-                                0.07
-                            )
-                          ).toLocaleString()}
-                          ฿</span
-                        >
-                      </div>
-                      `
-                          : ""
-                      }
+                     ${
+                       payment.includeVat
+                         ? `
+                     <div class="flex justify-between text-sm">
+                       <span class="text-gray-600">VAT 7%</span>
+                       <span class="font-semibold text-gray-900"
+                         >${Number(
+                           Math.round(
+                             ((payment.adults || 0) * payment.adultPrice +
+                               (payment.children || 0) * payment.childPrice +
+                               (payment.additionalCost || 0) -
+                               (payment.discount || 0)) *
+                               0.07,
+                           ),
+                         ).toLocaleString()}
+                         ฿</span
+                       >
+                     </div>
+                     `
+                         : ""
+                     }
                      <div class="flex justify-between text-sm">
                          <span class="text-gray-600">ส่วนลด</span>
                          <span class="font-semibold text-red-600">${Number(
-                           payment.discount || 0
+                           payment.discount || 0,
                          ).toLocaleString()} ฿</span>
                      </div>
                      <div class="pt-2 mt-2 border-t border-green-200 flex justify-between">
-                         <span class="font-bold text-gray-900">ยอดรวม</span>
+                         <span class="font-bold text-gray-900">ยอดรวมทั้งหมด</span>
                          <span class="font-bold text-gray-900 text-lg">${Number(
-                           payment.totalAmount
+                           payment.totalAmount,
                          ).toLocaleString()} ฿</span>
                      </div>
                  </div>
@@ -1595,13 +1708,13 @@
            </div>
         </div>
 
-        <!-- 4. Payment Input Section -->
+        <!-- Payment Input Section (Approval) -->
         <div class="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4">
           <h3 class="font-bold text-gray-900 mb-3 flex items-center">
             <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
             </svg>
-            การชำระเงิน
+            บันทึกการชำระเงิน
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
@@ -1652,7 +1765,7 @@
                 ${Number(
                   (payment.transferAmount || 0) +
                     (payment.cashAmount || 0) +
-                    (payment.cashOnTour || 0)
+                    (payment.cashOnTour || 0),
                 ).toLocaleString()} ฿
               </span>
             </div>
@@ -1671,12 +1784,12 @@
                   payment.totalAmount -
                     ((payment.transferAmount || 0) +
                       (payment.cashAmount || 0) +
-                      (payment.cashOnTour || 0))
+                      (payment.cashOnTour || 0)),
                 ).toLocaleString()} ฿
               </span>
             </div>
           </div>
-
+          
           ${
             !isCostRole
               ? `
@@ -1696,25 +1809,29 @@
           }
         </div>
 
-        ${
-          payment.note
-            ? `
-        <!-- 5. Note -->
-        <div>
-            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">หมายเหตุ</h4>
-            <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
-                 <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-                 <p>${payment.note}</p>
+        <!-- Remarks & Notes -->
+        <div class="space-y-4">
+            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">หมายเหตุการจอง</h4>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800 flex items-start gap-2">
+                 <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                 <p>${payment.notes2 || "-"}</p>
             </div>
+            ${
+              payment.cashOnTourNote
+                ? `
+            <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
+                <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <p><span class="font-bold">Cash on tour: </span> ${payment.cashOnTourNote.toLocaleString()}</p>
+            </div>
+            `
+                : ""
+            }
         </div>
-        `
-            : ""
-        }
 
+        <!-- Payment Slip -->
         ${
           payment.slipUrl
             ? `
-        <!-- 6. Payment Slip -->
         <div>
            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">หลักฐานการชำระเงิน</h4>
            <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-purple-200 hover:bg-purple-50 transition-colors group cursor-pointer" onclick="window.open('${payment.slipUrl}', '_blank')">
@@ -1734,31 +1851,17 @@
             : ""
         }
 
-        ${
-          payment.notes
-            ? `
-        <div class="mt-4">
-            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">หมายเหตุการจอง</h4>
-            <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800 flex items-start gap-2">
-                 <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-                 <p>${payment.notes}</p>
-            </div>
-        </div>
-        `
-            : ""
-        }
-
-        <!-- 7. Refund Status (Dynamic) -->
+        <!-- Refund Status (Dynamic) -->
         <div id="refundStatusContainer"></div>
 
-        <!-- 8. History Section -->
-        <div class="border-t pt-4">
-          <h3 class="font-bold text-gray-900 mb-3 flex items-center">
+        <!-- History Section -->
+        <div class="border-t pt-6">
+          <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center">
             <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             ประวัติการเปลี่ยนสถานะ
-          </h3>
+          </h4>
           <div id="paymentHistoryList" class="space-y-4">
             <div class="flex flex-col items-center justify-center py-6 space-y-3">
               <div class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div>
@@ -1767,12 +1870,18 @@
           </div>
         </div>
 
-        <!-- 9. Created/Updated Info -->
-        <div class="text-xs text-gray-500 border-t pt-4 space-y-1">
-          <div>สร้างโดย: ${payment.createdBy} (${payment.createdAt})</div>
+        <!-- Created/Updated Info -->
+        <div class="text-xs text-gray-400 border-t pt-4 space-y-1">
+          <div class="flex justify-between">
+              <span>สร้างโดย: ${payment.createdBy}</span>
+              <span>${payment.createdAt}</span>
+          </div>
           ${
             payment.updatedBy
-              ? `<div>แก้ไขล่าสุดโดย: ${payment.updatedBy} (${payment.updatedAt})</div>`
+              ? `<div class="flex justify-between">
+                  <span>แก้ไขล่าสุดโดย: ${payment.updatedBy}</span>
+                  <span>${payment.updatedAt}</span>
+                </div>`
               : ""
           }
         </div>
@@ -1786,10 +1895,7 @@
         !isCostRole
           ? `
       <button 
-        onclick='openRefundModal(${JSON.stringify(payment).replace(
-          /'/g,
-          "&#39;"
-        )})'
+        onclick='openRefundModal(${JSON.stringify(payment).replace(/'/g, "&#39;")})'
         class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:shadow-lg active:scale-95 transition-all duration-200 font-bold flex items-center gap-2"
       >
         คืนเงิน
@@ -1800,7 +1906,7 @@
           ? `<button 
               onclick='openUpdateStatusModal(${JSON.stringify(payment).replace(
                 /'/g,
-                "&#39;"
+                "&#39;",
               )})' 
               class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg active:scale-95 transition-all duration-200 font-bold flex items-center gap-2 shadow-purple-200"
             >
@@ -1818,7 +1924,6 @@
       <button 
         onclick="closeViewPaymentModal()" 
         class="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
-
       >
         ปิด
       </button>
@@ -1835,19 +1940,11 @@
     // Check for Refund info
     checkBookingRefund(payment.bookingId);
 
-    const modal = document.getElementById("viewPaymentModal");
-    const modalContent = document.getElementById("viewPaymentModalContent");
-
-    modal.classList.remove("hidden");
-    modal.classList.add("modal-show");
+    openModal("viewPaymentModal", "viewPaymentModalContent");
 
     // Ensure modal starts at top
-    const modalBody = document.getElementById("viewPaymentModalBody");
-    if (modalBody) modalBody.scrollTop = 0;
-
-    setTimeout(() => {
-      modalContent.classList.add("modal-content-show");
-    }, 10);
+    const modalBody = document.getElementById("viewPaymentContent");
+    if (modalBody) modalBody.parentElement.scrollTop = 0;
   }
 
   /**
@@ -1915,7 +2012,7 @@
 
           <div class="text-gray-600">ยอดเงินคืน:</div>
           <div class="font-bold text-red-600 text-right">${Number(
-            refund.refundAmount
+            refund.refundAmount,
           ).toLocaleString()} ฿</div>
           
           <div class="text-gray-600 text-xs col-span-2 text-right text-gray-500 mt-1">
@@ -1943,17 +2040,7 @@
   }
 
   function closeViewPaymentModal() {
-    const modal = document.getElementById("viewPaymentModal");
-    const modalContent = document.getElementById("viewPaymentModalContent");
-
-    modal.classList.add("modal-hide");
-    modalContent.classList.add("modal-content-hide");
-
-    setTimeout(() => {
-      modal.classList.add("hidden");
-      modal.classList.remove("modal-show", "modal-hide");
-      modalContent.classList.remove("modal-content-show", "modal-content-hide");
-    }, 300);
+    closeModal("viewPaymentModal", "viewPaymentModalContent");
   }
 
   // Update Status Modal
@@ -1966,7 +2053,7 @@
 
     document.getElementById("statusBookingId").value = payment.bookingId;
     document.getElementById("currentStatusDisplay").innerHTML = getStatusBadge(
-      payment.status
+      payment.status,
     );
 
     // Populate status dropdown excluding current status
@@ -2009,19 +2096,11 @@
       slipBtn.href = "#";
     }
 
-    const modal = document.getElementById("updateStatusModal");
-    const modalContent = document.getElementById("updateStatusModalContent");
-
-    modal.classList.remove("hidden");
-    modal.classList.add("modal-show");
+    openModal("updateStatusModal", "updateStatusModalContent");
 
     // Ensure modal starts at top
     const modalBody = document.getElementById("updateStatusModalBody");
     if (modalBody) modalBody.scrollTop = 0;
-
-    setTimeout(() => {
-      modalContent.classList.add("modal-content-show");
-    }, 10);
   }
 
   function toggleReasonField() {
@@ -2038,17 +2117,7 @@
   }
 
   function closeUpdateStatusModal() {
-    const modal = document.getElementById("updateStatusModal");
-    const modalContent = document.getElementById("updateStatusModalContent");
-
-    modal.classList.add("modal-hide");
-    modalContent.classList.add("modal-content-hide");
-
-    setTimeout(() => {
-      modal.classList.add("hidden");
-      modal.classList.remove("modal-show", "modal-hide");
-      modalContent.classList.remove("modal-content-show", "modal-content-hide");
-    }, 300);
+    closeModal("updateStatusModal", "updateStatusModalContent");
   }
 
   function confirmStatusUpdate() {
@@ -2101,8 +2170,11 @@
     spinner.classList.add("hidden");
     text.textContent = "บันทึก";
 
-    if (!response.success) {
-      showToast(response.message, "error");
+    if (!response || !response.success) {
+      showToast(
+        response ? response.message : "เกิดข้อผิดพลาดในการอัพเดทสถานะ",
+        "error",
+      );
       return;
     }
 
@@ -2150,108 +2222,35 @@
    * Render Pagination & Data
    */
   function renderPaymentPagination() {
-    const totalItems = currentFilteredPayments.length;
-    const totalPages = Math.ceil(totalItems / paymentItemsPerPage);
+    AppPagination.render({
+      currentPage: currentPaymentPage,
+      itemsPerPage: paymentItemsPerPage,
+      totalItems: currentFilteredPayments.length,
+      onPageChange: "changePaymentPage",
+      containerIds: {
+        info: "paymentPaginationInfo",
+        mobile: "paymentMobilePageInfo",
+        prev: "paymentPrevPageBtn",
+        next: "paymentNextPageBtn",
+        numbers: "paymentPageNumbers",
+      },
+    });
 
-    // Validate current page
-    if (currentPaymentPage > totalPages) {
-      currentPaymentPage = totalPages || 1;
-    }
-    if (currentPaymentPage < 1) {
-      currentPaymentPage = 1;
-    }
-
-    const startIndex = (currentPaymentPage - 1) * paymentItemsPerPage;
-    const endIndex = Math.min(startIndex + paymentItemsPerPage, totalItems);
-    const pageData = currentFilteredPayments.slice(startIndex, endIndex);
-
-    // Render Data
-    displayPayments(pageData);
-
-    // Update Pagination Info
-    document.getElementById(
-      "paymentPaginationInfo"
-    ).textContent = `หน้า ${currentPaymentPage} จาก ${totalPages} (${totalItems} รายการ)`;
-    document.getElementById(
-      "paymentMobilePageInfo"
-    ).textContent = `${currentPaymentPage} / ${totalPages}`;
-
-    // Update Navigation Buttons
-    document.getElementById("paymentPrevPageBtn").disabled =
-      currentPaymentPage === 1;
-    document.getElementById("paymentNextPageBtn").disabled =
-      currentPaymentPage === totalPages;
-
-    // Render Page Numbers (Desktop)
-    const pageNumbersContainer = document.getElementById("paymentPageNumbers");
-    pageNumbersContainer.innerHTML = "";
-
-    const maxVisiblePages = 5;
-    let startPage = Math.max(
-      1,
-      currentPaymentPage - Math.floor(maxVisiblePages / 2)
+    const pageData = AppPagination.getPaginatedItems(
+      currentFilteredPayments,
+      currentPaymentPage,
+      paymentItemsPerPage,
     );
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage < maxVisiblePages - 1) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    // First page + dots
-    if (startPage > 1) {
-      const firstBtn = createPaymentPageButton(1);
-      pageNumbersContainer.appendChild(firstBtn);
-
-      if (startPage > 2) {
-        const dots = document.createElement("span");
-        dots.className = "text-gray-400 px-1 select-none";
-        dots.textContent = "...";
-        pageNumbersContainer.appendChild(dots);
-      }
-    }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-      const btn = createPaymentPageButton(i);
-      pageNumbersContainer.appendChild(btn);
-    }
-
-    // Last page + dots
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        const dots = document.createElement("span");
-        dots.className = "text-gray-400 px-1 select-none";
-        dots.textContent = "...";
-        pageNumbersContainer.appendChild(dots);
-      }
-
-      const lastBtn = createPaymentPageButton(totalPages);
-      pageNumbersContainer.appendChild(lastBtn);
-    }
-  }
-
-  function createPaymentPageButton(pageNum) {
-    const btn = document.createElement("button");
-    btn.textContent = pageNum;
-    btn.onclick = () => changePaymentPage(pageNum);
-
-    if (pageNum === currentPaymentPage) {
-      btn.className =
-        "px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-bold shadow-sm";
-    } else {
-      btn.className =
-        "px-3 py-1 border border-gray-200 rounded-lg hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-all";
-    }
-
-    return btn;
+    displayPayments(pageData);
   }
 
   /**
    * Change Page Action
    */
   function changePaymentPage(direction) {
-    const totalItems = currentFilteredPayments.length;
-    const totalPages = Math.ceil(totalItems / paymentItemsPerPage);
+    const totalPages = Math.ceil(
+      currentFilteredPayments.length / paymentItemsPerPage,
+    );
 
     if (direction === "prev" && currentPaymentPage > 1) {
       currentPaymentPage--;
@@ -2270,7 +2269,7 @@
   function changePaymentPageSize() {
     const selector = document.getElementById("paymentItemsPerPageSelect");
     paymentItemsPerPage = parseInt(selector.value);
-    currentPaymentPage = 1; // Reset to page 1
+    currentPaymentPage = 1;
     renderPaymentPagination();
   }
 
@@ -2332,7 +2331,7 @@
           }
         </div>
       </div>
-    `
+    `,
       )
       .join("");
   }
@@ -2386,13 +2385,13 @@
     }
 
     const transferAmount = parseFloat(
-      document.getElementById("transferAmount")?.value || 0
+      document.getElementById("transferAmount")?.value || 0,
     );
     const cashAmount = parseFloat(
-      document.getElementById("cashAmount")?.value || 0
+      document.getElementById("cashAmount")?.value || 0,
     );
     const cashOnTour = parseFloat(
-      document.getElementById("cashOnTour")?.value || 0
+      document.getElementById("cashOnTour")?.value || 0,
     );
 
     // Validate amounts
@@ -2422,7 +2421,7 @@
         currentPayment.bookingId,
         transferAmount,
         cashAmount,
-        cashOnTour
+        cashOnTour,
       );
   }
 
@@ -2443,8 +2442,13 @@
       text.textContent = "บันทึกข้อมูลการชำระเงิน";
     }
 
-    if (!response.success) {
-      showToast(response.message || "ไม่สามารถบันทึกข้อมูลได้", "error");
+    if (!response || !response.success) {
+      showToast(
+        response
+          ? response.message || "ไม่สามารถบันทึกข้อมูลได้"
+          : "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+        "error",
+      );
       return;
     }
 
@@ -2456,13 +2460,13 @@
     // Update current payment data
     if (currentPayment) {
       currentPayment.transferAmount = parseFloat(
-        document.getElementById("transferAmount")?.value || 0
+        document.getElementById("transferAmount")?.value || 0,
       );
       currentPayment.cashAmount = parseFloat(
-        document.getElementById("cashAmount")?.value || 0
+        document.getElementById("cashAmount")?.value || 0,
       );
       currentPayment.cashOnTour = parseFloat(
-        document.getElementById("cashOnTour")?.value || 0
+        document.getElementById("cashOnTour")?.value || 0,
       );
     }
 
@@ -2479,7 +2483,7 @@
   // REFUND SYSTEM - FRONTEND FUNCTIONS
   // ========================================
 
-  let currentPaymentForRefund = null;
+  var currentPaymentForRefund = window.currentPaymentForRefund || null;
 
   /**
    * Open Refund Modal (All-in-One)
@@ -2502,34 +2506,15 @@
     // Reset Slip UI
     clearRefundSlip();
 
-    // Open modal with Standard Animation
-    const modal = document.getElementById("createRefundModal");
-    const modalContent = document.getElementById("createRefundModalContent");
-
-    modal.classList.remove("hidden");
-    modal.classList.add("modal-show");
+    openModal("createRefundModal", "createRefundModalContent");
 
     // Ensure modal starts at top
     const modalBody = document.getElementById("createRefundModalBody");
     if (modalBody) modalBody.scrollTop = 0;
-
-    setTimeout(() => {
-      modalContent.classList.add("modal-content-show");
-    }, 10);
   }
 
   function closeCreateRefundModal() {
-    const modal = document.getElementById("createRefundModal");
-    const modalContent = document.getElementById("createRefundModalContent");
-
-    modal.classList.add("modal-hide");
-    modalContent.classList.add("modal-content-hide");
-
-    setTimeout(() => {
-      modal.classList.add("hidden");
-      modal.classList.remove("modal-show", "modal-hide");
-      modalContent.classList.remove("modal-content-show", "modal-content-hide");
-    }, 300);
+    closeModal("createRefundModal", "createRefundModalContent");
     currentPaymentForRefund = null;
   }
 
@@ -2557,7 +2542,7 @@
     document.getElementById("refundSlipPreview").classList.remove("hidden");
     document.getElementById("refundSlipFileName").textContent = file.name;
     document.getElementById("refundSlipFileSize").textContent = formatFileSize(
-      file.size
+      file.size,
     );
 
     // Hide view link for new files
@@ -2606,7 +2591,7 @@
 
     // Get refund data
     const refundAmount = parseFloat(
-      document.getElementById("refundAmount").value
+      document.getElementById("refundAmount").value,
     );
     const slipFileInput = document.getElementById("refundSlipFile");
     const note = document.getElementById("refundNote").value.trim();
@@ -2643,7 +2628,7 @@
         if (!customerResponse.success) {
           showToast(
             customerResponse.message || "ไม่สามารถบันทึกข้อมูลลูกค้าได้",
-            "error"
+            "error",
           );
           btn.disabled = false;
           if (spinner) spinner.classList.add("hidden");
@@ -2668,7 +2653,7 @@
               if (!refundResponse.success) {
                 showToast(
                   refundResponse.message || "ไม่สามารถบันทึกการคืนเงินได้",
-                  "error"
+                  "error",
                 );
                 return;
               }
@@ -2703,7 +2688,7 @@
                 data: base64Data,
                 mimeType: file.type,
                 filename: file.name,
-              }
+              },
             );
         };
 

@@ -35,15 +35,15 @@
   /**
    * จ่ายเวลาให้ Browser เรนเดอร์ (ช่วยแก้ปัญหาหน้าว่าง)
    */
-  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  var wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   /**
    * Generate Invoice PDF (Download)
    * วิธีที่เสถียรที่สุด: ใช้ Canvas ที่เรนเดอร์ผ่านแล้วมาสร้างเป็น PDF
    */
-  async function generateInvoicePDF(booking) {
+  async function generateInvoicePDF(booking, docType) {
     const container = document.createElement("div");
-    container.innerHTML = createInvoiceHTML(booking);
+    container.innerHTML = createInvoiceHTML(booking, docType);
     container.style.position = "fixed";
     container.style.left = "-10000px";
     container.style.top = "0";
@@ -68,10 +68,13 @@
         canvases.push(canvas);
       }
 
-      const headerText = booking.status === "Completed" ? "Receipt" : "Invoice";
+      const isReceipt = docType
+        ? docType === "Receipt"
+        : booking.status === "Completed";
+      const filePrefix = isReceipt ? "Receipt" : "Invoice";
       // วางรูปทีละหน้าลงบนกระดาษ A4 เปล่าเพื่อความแม่นยำ
       let worker = html2pdf()
-        .set(getPDFOptions(`${headerText}_${booking.bookingId}.pdf`))
+        .set(getPDFOptions(`${filePrefix}_${booking.bookingId}.pdf`))
         .from("<div></div>")
         .toPdf()
         .get("pdf")
@@ -154,9 +157,9 @@
     return res;
   }
 
-  async function previewPDF(booking) {
+  async function previewPDF(booking, docType) {
     const container = document.createElement("div");
-    container.innerHTML = createInvoiceHTML(booking);
+    container.innerHTML = createInvoiceHTML(booking, docType);
     container.style.position = "fixed";
     container.style.left = "-10000px";
     container.style.top = "0";
@@ -185,10 +188,13 @@
         canvases.push(canvas);
       }
 
-      const headerText = booking.status === "Completed" ? "Receipt" : "Invoice";
+      const isReceipt = docType
+        ? docType === "Receipt"
+        : booking.status === "Completed";
+      const filePrefix = isReceipt ? "Receipt" : "Invoice";
       // สร้าง PDF Blob เปล่าแล้ววางรูปทีละหน้าเพื่อความแม่นยำ
       let worker = html2pdf()
-        .set(getPDFOptions(`${headerText}_${booking.bookingId}.pdf`))
+        .set(getPDFOptions(`${filePrefix}_${booking.bookingId}.pdf`))
         .from("<div></div>")
         .toPdf()
         .get("pdf")
@@ -204,8 +210,8 @@
       showPDFPreview(
         canvases,
         pdfBlob,
-        `${headerText}_${booking.bookingId}.pdf`,
-        booking.bookingId
+        `${filePrefix}_${booking.bookingId}.pdf`,
+        booking.bookingId,
       );
     } catch (error) {
       console.error("PDF Preview Error:", error);
@@ -218,7 +224,7 @@
   /**
    * Create Invoice HTML Template
    */
-  function createInvoiceHTML(booking) {
+  function createInvoiceHTML(booking, docType) {
     const themeColor = "#7c3aed";
 
     const adultTotal = (booking.adults || 0) * (booking.adultPrice || 0);
@@ -226,10 +232,12 @@
     const additionalCost = booking.additionalCost || 0;
     const bahtText = arabicToThaiBaht(booking.totalAmount || 0);
 
-    const isCompleted = booking.status === "Completed";
-    const docTitle = isCompleted ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้";
-    const recipientLabel = isCompleted ? "ผู้รับใบเสร็จ" : "ผู้รับใบแจ้งหนี้";
-    const issuerLabel = isCompleted ? "ผู้ออกใบเสร็จ" : "ผู้ออกใบแจ้งหนี้";
+    const isReceipt = docType
+      ? docType === "Receipt"
+      : booking.status === "Completed";
+    const docTitle = isReceipt ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้";
+    const recipientLabel = isReceipt ? "ผู้รับใบเสร็จ" : "ผู้รับใบแจ้งหนี้";
+    const issuerLabel = isReceipt ? "ผู้ออกใบเสร็จ" : "ผู้ออกใบแจ้งหนี้";
 
     const formatDate = (dateStr) => {
       if (!dateStr) {
@@ -405,13 +413,13 @@
                     <tr class="info-item">
                       <td class="info-label">วันที่</td>
                       <td class="info-value">${formatDate(
-                        booking.bookingDate
+                        booking.bookingDate,
                       )}</td>
                     </tr>
                     <tr class="info-item">
                       <td class="info-label">ครบกำหนด</td>
                       <td class="info-value">${formatDate(
-                        booking.travelDate
+                        booking.travelDate,
                       )}</td>
                     </tr>
                     <tr class="info-item">
@@ -468,7 +476,7 @@
                 ).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
                 <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${adultTotal.toLocaleString(
                   "th-TH",
-                  { minimumFractionDigits: 2 }
+                  { minimumFractionDigits: 2 },
                 )}</td>
               </tr>
               <tr>
@@ -482,7 +490,7 @@
                 ).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
                 <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${childTotal.toLocaleString(
                   "th-TH",
-                  { minimumFractionDigits: 2 }
+                  { minimumFractionDigits: 2 },
                 )}</td>
               </tr>
             </tbody>
@@ -498,27 +506,22 @@
                 "th-TH",
                 {
                   minimumFractionDigits: 2,
-                }
+                },
               )} บาท</span>
             </div>`
                 : ""
             }
             ${
-              booking.includeVat
+              booking.vat > 0
                 ? `
             <div class="summary-row">
               <span class="summary-label">ภาษีมูลค่าเพิ่ม 7%</span>
-              <span class="summary-value">${Number(
-                Math.round(
-                  ((booking.adults || 0) * booking.adultPrice +
-                    (booking.children || 0) * booking.childPrice +
-                    (booking.additionalCost || 0) -
-                    (booking.discount || 0)) *
-                    0.07
-                )
-              ).toLocaleString("th-TH", {
-                minimumFractionDigits: 2,
-              })} บาท</span>
+              <span class="summary-value">${Number(booking.vat).toLocaleString(
+                "th-TH",
+                {
+                  minimumFractionDigits: 2,
+                },
+              )} บาท</span>
             </div>`
                 : ""
             }
@@ -536,7 +539,7 @@
                 "th-TH",
                 {
                   minimumFractionDigits: 2,
-                }
+                },
               )} บาท</span>
             </div>
             </div>
@@ -546,7 +549,9 @@
           </div>
           <div class="notes">
             <div class="notes-label">หมายเหตุ</div>
-            <div class="notes-content">${booking.notes || ""}</div>
+            <div class="notes-content">
+              ${booking.notes2 ? `<div>- ${booking.notes2}</div>` : ""}
+            </div>
           </div>
 
           <div class="footer">
@@ -580,7 +585,7 @@
         </div>
 
         ${
-          !isCompleted
+          !isReceipt
             ? `
         <!-- Page 2: Payment Information -->
         <div class="page">
@@ -598,11 +603,6 @@
             <div style="font-size: 20px; font-weight: 700; margin-bottom: 30px;">โอนเงิน</div>
             
             <div style="border: 2px solid #e5e7eb; border-radius: 12px; padding: 40px; text-align: center; max-width: 350px;">
-              <!-- QR Code Placeholder -->
-             <div style="width: 46px; height: 46px; margin: 0 auto 20px; border: 2px solid #00a950; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: white; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-  <img src="https://www.kasikornbank.com/SiteCollectionDocuments/about/img/logo/logo.png" style="width: 30px; height: auto; object-fit: contain;" crossorigin="anonymous"/>
-</div>
-              
               <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">163-1-12928-1</div>
               <div style="font-size: 14px; color: #666; margin-bottom: 4px;">ธ. กสิกรไทย</div>
               <div style="font-size: 13px; color: #999;">บจก. ซีแลนด์ แอดเวนเจอร์</div>

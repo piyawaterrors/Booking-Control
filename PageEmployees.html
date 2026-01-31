@@ -613,47 +613,41 @@
 </div>
 
 <script>
-  let allEmployeesList = [];
-  let empFilteredList = [];
-  let employeeEditId = null;
-  let empCurrentPage = 1;
-  let empItemsPerPage = 10;
+  var allEmployeesList = [];
+  var empFilteredList = [];
+  var employeeEditId = null;
+  var empCurrentPage = 1;
+  var empItemsPerPage = 10;
 
   /**
    * Toggle Loading Helper
    */
-  function toggleLoading(
+  function toggleEmployeeLoading(
     btnId,
     spinnerId,
     textId,
     isLoading,
     defaultText,
-    loadingText
+    loadingText,
   ) {
-    const btn = document.getElementById(btnId);
-    const spinner = document.getElementById(spinnerId);
-    const text = document.getElementById(textId);
+    AppUI.toggleLoading(
+      btnId,
+      spinnerId,
+      textId,
+      isLoading,
+      defaultText,
+      loadingText,
+    );
     const cancelBtnId =
       btnId === "submitEmployeeBtn"
         ? "cancelEmployeeBtn"
         : btnId === "confirmDeleteBtn"
-        ? "cancelDeleteBtn"
-        : btnId === "confirmResetBtn"
-        ? "cancelResetBtn"
-        : null;
+          ? "cancelDeleteBtn"
+          : btnId === "confirmResetBtn"
+            ? "cancelResetBtn"
+            : null;
     const cancelBtn = cancelBtnId ? document.getElementById(cancelBtnId) : null;
-
-    if (isLoading) {
-      btn.disabled = true;
-      if (cancelBtn) cancelBtn.disabled = true;
-      spinner.classList.remove("hidden");
-      text.textContent = loadingText;
-    } else {
-      btn.disabled = false;
-      if (cancelBtn) cancelBtn.disabled = false;
-      spinner.classList.add("hidden");
-      text.textContent = defaultText;
-    }
+    if (cancelBtn) cancelBtn.disabled = isLoading;
   }
 
   /**
@@ -726,33 +720,39 @@
       .getAllUsers(session.sessionToken);
   }
 
-  /**
-   * Render Employees Table & Grid with Pagination
-   */
   function renderEmployees(employees) {
     const tbody = document.getElementById("employeeTableBody");
     const gbody = document.getElementById("employeeGridBody");
     const emptyState = document.getElementById("emptyState");
 
-    // Pagination logic
     const totalItems = employees.length;
-    const totalPages = Math.ceil(totalItems / empItemsPerPage) || 1;
 
-    // Ensure current page is valid
-    if (empCurrentPage > totalPages) empCurrentPage = totalPages;
-    if (empCurrentPage < 1) empCurrentPage = 1;
+    // Use Shared Pagination
+    const paginatedItems = AppPagination.getPaginatedItems(
+      employees,
+      empCurrentPage,
+      empItemsPerPage,
+    );
 
-    const startIndex = (empCurrentPage - 1) * empItemsPerPage;
-    const endIndex = Math.min(startIndex + empItemsPerPage, totalItems);
-    const paginatedItems = employees.slice(startIndex, endIndex);
-
-    // Update Pagination UI
-    updateEmpPaginationUI(totalItems, totalPages);
+    AppPagination.render({
+      currentPage: empCurrentPage,
+      itemsPerPage: empItemsPerPage,
+      totalItems: totalItems,
+      onPageChange: "goToEmpPage",
+      containerIds: {
+        info: "empPaginationInfo",
+        mobile: "empMobilePageInfo",
+        prev: "empPrevPageBtn",
+        next: "empNextPageBtn",
+        numbers: "empPageNumbers",
+      },
+    });
 
     if (totalItems === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">ไม่พบข้อมูล</td></tr>';
-      gbody.innerHTML = "";
+      if (tbody)
+        tbody.innerHTML =
+          '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">ไม่พบข้อมูล</td></tr>';
+      if (gbody) gbody.innerHTML = "";
       emptyState.classList.remove("hidden");
       return;
     }
@@ -760,194 +760,131 @@
     emptyState.classList.add("hidden");
 
     // Desktop Table
-    tbody.innerHTML = paginatedItems
-      .map(
-        (emp) => `
-      <tr class="group hover:bg-purple-50/50 transition-all duration-200">
-        <td class="px-6 py-4 text-sm font-semibold text-gray-700">${
-          emp.userId
-        }</td>
-        <td class="px-6 py-4">
-          <div class="flex items-center">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold mr-3 shadow-sm">
-              ${emp.fullName.charAt(0)}
-            </div>
-            <span class="text-sm font-bold text-gray-900">${emp.fullName}</span>
-          </div>
-        </td>
-        <td class="px-6 py-4 text-sm text-gray-600 font-medium">${
-          emp.username
-        }</td>
-        <td class="px-6 py-4 text-sm font-mono text-indigo-600 font-medium">${
-          emp.phone || "-"
-        }</td>
-        <td class="px-6 py-4 text-sm text-gray-500">${emp.email}</td>
-        <td class="px-6 py-4">
-          <span class="px-3 py-1 text-xs font-bold rounded-lg border-2 ${getRoleBadgeClass(
-            emp.role
-          )}">
-            ${emp.role}
-          </span>
-        </td>
-        <td class="px-6 py-4 text-center">
-          <button onclick="toggleUserStatus('${
+    if (tbody) {
+      tbody.innerHTML = paginatedItems
+        .map(
+          (emp) => `
+        <tr class="group hover:bg-purple-50/50 transition-all duration-200">
+          <td class="px-6 py-4 text-sm font-semibold text-gray-700">${
             emp.userId
-          }')" class="group relative inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold transition-all duration-200 ${
-          emp.status === "เปิดใช้งาน"
-            ? "bg-green-100 text-green-700 hover:bg-green-200"
-            : "bg-red-100 text-red-700 hover:bg-red-200"
-        }">
-            <span class="w-1.5 h-1.5 rounded-full mr-1.5 transition-colors ${
-              emp.status === "เปิดใช้งาน" ? "bg-green-500" : "bg-red-500"
-            }"></span>
-            ${emp.status}
-            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-              คลิกเพื่อเปลี่ยนสถานะ
+          }</td>
+          <td class="px-6 py-4">
+            <div class="flex items-center">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold mr-3 shadow-sm">
+                ${emp.fullName.charAt(0)}
+              </div>
+              <span class="text-sm font-bold text-gray-900">${
+                emp.fullName
+              }</span>
             </div>
-          </button>
-        </td>
-        <td class="px-6 py-4 text-center">
-          <div class="flex justify-center space-x-1 transition-all duration-200">
-            <button
-              onclick="editEmployee('${emp.userId}')"
-              class="p-2 text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-xl transition-all duration-200 shadow-sm bg-white"
-              title="แก้ไข"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-              </svg>
-            </button>
-            <button
-              onclick="openResetPasswordModal('${emp.userId}', '${
-          emp.fullName
-        }')"
-              class="p-2 text-orange-600 hover:bg-orange-50 border border-transparent hover:border-orange-100 rounded-xl transition-all duration-200 shadow-sm bg-white"
-              title="รีเซ็ตรหัสผ่าน"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-              </svg>
-            </button>
-            ${
-              emp.role !== "Owner"
-                ? `
-            <button
-              onclick="deleteEmployee('${emp.userId}', '${emp.fullName}')"
-              class="p-2 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl transition-all duration-200 shadow-sm bg-white"
-              title="ลบ"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
-            </button>
-            `
-                : ""
-            }
-          </div>
-        </td>
-      </tr>
-    `
-      )
-      .join("");
-
-    // Mobile Grid
-    gbody.innerHTML = paginatedItems
-      .map(
-        (emp) => `
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-0.05">
-        <div class="flex justify-between items-start mb-4">
-          <div class="flex items-center">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold mr-3 shadow-lg shadow-purple-100">
-              ${emp.fullName.charAt(0)}
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900">${emp.fullName}</h4>
-              <p class="text-xs text-gray-500 font-medium">@${emp.username}</p>
-            </div>
-          </div>
-          <span class="px-2.5 py-1 text-[10px] font-bold rounded-lg border-2 ${getRoleBadgeClass(
-            emp.role
-          )}">
-            ${emp.role}
-          </span>
-        </div>
-
-        <div class="space-y-3 mb-5">
-          <div class="flex items-center text-sm text-gray-600">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-            </svg>
-            ${emp.email}
-          </div>
-          <div class="flex items-center text-sm text-gray-600">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-            </svg>
-            ${emp.phone || "-"}
-          </div>
-          <div class="flex items-center text-sm text-gray-600">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 014 0v1m-4-1a2 2 0 004 0v1M10 6a2 2 0 012 2v2a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h2z"></path>
-            </svg>
-            ID: ${emp.userId}
-          </div>
-          <div class="flex items-center">
+          </td>
+          <td class="px-6 py-4 text-sm text-gray-600 font-medium">${
+            emp.username
+          }</td>
+          <td class="px-6 py-4 text-sm font-mono text-indigo-600 font-medium">${
+            emp.phone || "-"
+          }</td>
+          <td class="px-6 py-4 text-sm text-gray-500">${emp.email}</td>
+          <td class="px-6 py-4">
+            <span class="px-3 py-1 text-xs font-bold rounded-lg border-2 ${getRoleBadgeClass(
+              emp.role,
+            )}">${emp.role}</span>
+          </td>
+          <td class="px-6 py-4 text-center">
             <button onclick="toggleUserStatus('${
               emp.userId
-            }')" class="group relative inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold transition-all duration-200 ${
-          emp.status === "เปิดใช้งาน"
-            ? "bg-green-100 text-green-700 hover:bg-green-200"
-            : "bg-red-100 text-red-700 hover:bg-red-200"
-        }">
-              <span class="w-1.5 h-1.5 rounded-full mr-1.5 transition-colors ${
+            }')" class="group relative inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold transition-all ${
+              emp.status === "เปิดใช้งาน"
+                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                : "bg-red-100 text-red-700 hover:bg-red-200"
+            }">
+              <span class="w-1.5 h-1.5 rounded-full mr-1.5 ${
                 emp.status === "เปิดใช้งาน" ? "bg-green-500" : "bg-red-500"
               }"></span>
               ${emp.status}
-              <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                คลิกเพื่อเปลี่ยนสถานะ
+            </button>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <div class="flex justify-center items-center space-x-1">
+              <button onclick="editEmployee('${
+                emp.userId
+              }')" class="p-2 text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-xl transition-all shadow-sm bg-white" title="แก้ไข">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              </button>
+              <button onclick="openResetPasswordModal('${emp.userId}', '${
+                emp.fullName
+              }')" class="p-2 text-orange-600 hover:bg-orange-50 border border-transparent hover:border-orange-100 rounded-xl transition-all shadow-sm bg-white" title="รีเซ็ตรหัสผ่าน">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+              </button>
+              <button onclick="deleteEmployeeModal('${emp.userId}', '${
+                emp.fullName
+              }')" class="p-2 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl transition-all shadow-sm bg-white" title="ลบ">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `,
+        )
+        .join("");
+    }
+
+    // Mobile Grid
+    if (gbody) {
+      gbody.innerHTML = paginatedItems
+        .map(
+          (emp) => `
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all relative overflow-hidden">
+          <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold mr-3 shadow-sm">${emp.fullName.charAt(
+                0,
+              )}</div>
+              <div>
+                <h4 class="font-bold text-gray-900">${emp.fullName}</h4>
+                <p class="text-xs text-gray-500">${emp.userId}</p>
               </div>
+            </div>
+            <span class="px-2 py-1 text-[10px] font-bold rounded-lg border-2 ${getRoleBadgeClass(
+              emp.role,
+            )}">${emp.role}</span>
+          </div>
+          <div class="space-y-2 mb-4">
+            <div class="flex justify-between text-xs">
+              <span class="text-gray-400">Username</span>
+              <span class="text-gray-900 font-medium">${emp.username}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-gray-400">เบอร์โทร</span>
+              <span class="text-indigo-600 font-bold">${emp.phone || "-"}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-gray-400">สถานะ</span>
+              <span class="font-bold ${
+                emp.status === "เปิดใช้งาน" ? "text-green-600" : "text-red-600"
+              }">${emp.status}</span>
+            </div>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="editEmployee('${
+              emp.userId
+            }')" class="flex-1 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold">แก้ไข</button>
+            <button onclick="openResetPasswordModal('${emp.userId}', '${
+              emp.fullName
+            }')" class="px-3 py-2 bg-orange-50 text-orange-600 rounded-xl text-sm font-bold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+            </button>
+            <button onclick="deleteEmployeeModal('${emp.userId}', '${
+              emp.fullName
+            }')" class="px-3 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
           </div>
         </div>
-
-        <div class="flex space-x-2 border-t border-gray-50 pt-4">
-          <button
-            onclick="editEmployee('${emp.userId}')"
-            class="flex-1 flex items-center justify-center py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors"
-          >
-            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            แก้ไข
-          </button>
-          <button
-            onclick="openResetPasswordModal('${emp.userId}', '${emp.fullName}')"
-            class="flex-1 flex items-center justify-center py-2 bg-orange-50 text-orange-700 rounded-xl text-sm font-bold hover:bg-orange-100 transition-colors"
-          >
-            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-            </svg>
-            รีเซ็ต
-          </button>
-          ${
-            emp.role !== "Owner"
-              ? `
-          <button
-            onclick="deleteEmployee('${emp.userId}', '${emp.fullName}')"
-            class="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-            </svg>
-          </button>
-          `
-              : ""
-          }
-        </div>
-      </div>
-    `
-      )
-      .join("");
+      `,
+        )
+        .join("");
+    }
   }
 
   /**
@@ -1117,25 +1054,25 @@
         : [session.sessionToken, employeeData];
 
       // Start Loading
-      toggleLoading(
+      toggleEmployeeLoading(
         "submitEmployeeBtn",
         "submitBtnSpinner",
         "submitBtnText",
         true,
         "บันทึก",
-        "กำลังบันทึก..."
+        "กำลังบันทึก...",
       );
 
       google.script.run
         .withSuccessHandler(function (response) {
           // Stop Loading
-          toggleLoading(
+          toggleEmployeeLoading(
             "submitEmployeeBtn",
             "submitBtnSpinner",
             "submitBtnText",
             false,
             "บันทึก",
-            "กำลังบันทึก..."
+            "กำลังบันทึก...",
           );
 
           if (response.success) {
@@ -1148,13 +1085,13 @@
         })
         .withFailureHandler(function (error) {
           // Stop Loading
-          toggleLoading(
+          toggleEmployeeLoading(
             "submitEmployeeBtn",
             "submitBtnSpinner",
             "submitBtnText",
             false,
             "บันทึก",
-            "กำลังบันทึก..."
+            "กำลังบันทึก...",
           );
           showToast("เกิดข้อผิดพลาด: " + error.message, "error");
         })
@@ -1203,24 +1140,24 @@
     const session = getSessionFromStorage();
     const userId = document.getElementById("resetEmployeeId").value;
 
-    toggleLoading(
+    toggleEmployeeLoading(
       "confirmResetBtn",
       "resetSpinner",
       "resetBtnText",
       true,
       "รีเซ็ตรหัสผ่าน",
-      "กำลังรีเซ็ต..."
+      "กำลังรีเซ็ต...",
     );
 
     google.script.run
       .withSuccessHandler(function (response) {
-        toggleLoading(
+        toggleEmployeeLoading(
           "confirmResetBtn",
           "resetSpinner",
           "resetBtnText",
           false,
           "รีเซ็ตรหัสผ่าน",
-          "กำลังรีเซ็ต..."
+          "กำลังรีเซ็ต...",
         );
         if (response.success) {
           showToast(response.message, "success");
@@ -1230,13 +1167,13 @@
         }
       })
       .withFailureHandler(function (error) {
-        toggleLoading(
+        toggleEmployeeLoading(
           "confirmResetBtn",
           "resetSpinner",
           "resetBtnText",
           false,
           "รีเซ็ตรหัสผ่าน",
-          "กำลังรีเซ็ต..."
+          "กำลังรีเซ็ต...",
         );
         showToast("เกิดข้อผิดพลาด: " + error.message, "error");
       })
@@ -1246,7 +1183,7 @@
   /**
    * Open Delete Modal
    */
-  function deleteEmployee(userId, fullName) {
+  function deleteEmployeeModal(userId, fullName) {
     document.getElementById("deleteEmployeeId").value = userId;
     document.getElementById("deleteEmployeeName").textContent = fullName;
 
@@ -1284,25 +1221,25 @@
     const userId = document.getElementById("deleteEmployeeId").value;
 
     // Start Loading
-    toggleLoading(
+    toggleEmployeeLoading(
       "confirmDeleteBtn",
       "deleteBtnSpinner",
       "deleteBtnText",
       true,
       "ลบข้อมูล",
-      "กำลังลบ..."
+      "กำลังลบ...",
     );
 
     google.script.run
       .withSuccessHandler(function (response) {
         // Stop Loading
-        toggleLoading(
+        toggleEmployeeLoading(
           "confirmDeleteBtn",
           "deleteBtnSpinner",
           "deleteBtnText",
           false,
           "ลบข้อมูล",
-          "กำลังลบ..."
+          "กำลังลบ...",
         );
 
         if (response.success) {
@@ -1315,13 +1252,13 @@
       })
       .withFailureHandler(function (error) {
         // Stop Loading
-        toggleLoading(
+        toggleEmployeeLoading(
           "confirmDeleteBtn",
           "deleteBtnSpinner",
           "deleteBtnText",
           false,
           "ลบข้อมูล",
-          "กำลังลบ..."
+          "กำลังลบ...",
         );
         showToast("เกิดข้อผิดพลาด: " + error.message, "error");
       })
@@ -1352,54 +1289,11 @@
       .toggleUserStatus(session.sessionToken, userId);
   }
 
-  /**
-   * Update Employee Pagination UI
-   */
-  function updateEmpPaginationUI(totalItems, totalPages) {
-    const info = document.getElementById("empPaginationInfo");
-    const prevBtn = document.getElementById("empPrevPageBtn");
-    const nextBtn = document.getElementById("empNextPageBtn");
-    const pageNumbers = document.getElementById("empPageNumbers");
-
-    if (!info || !prevBtn || !nextBtn || !pageNumbers) return;
-
-    info.textContent = `หน้า ${empCurrentPage} จาก ${totalPages} (${totalItems} รายการ)`;
-
-    prevBtn.disabled = empCurrentPage === 1;
-    nextBtn.disabled = empCurrentPage === totalPages;
-
-    // Generate page buttons (show max 5 buttons)
-    let buttonsHtml = "";
-    let startPage = Math.max(1, empCurrentPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-
-    if (endPage - startPage < 4) {
-      startPage = Math.max(1, endPage - 4);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      buttonsHtml += `
-        <button onclick="goToEmpPage(${i})" class="w-10 h-10 flex items-center justify-center rounded-lg border text-sm font-bold transition-all ${
-        i === empCurrentPage
-          ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-200"
-          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-      }">
-          ${i}
-        </button>
-      `;
-    }
-    pageNumbers.innerHTML = buttonsHtml;
-  }
-
-  function changeEmpPage(direction) {
-    const totalPages = Math.ceil(empFilteredList.length / empItemsPerPage) || 1;
-    if (direction === "prev" && empCurrentPage > 1) {
-      empCurrentPage--;
-    } else if (direction === "next" && empCurrentPage < totalPages) {
-      empCurrentPage++;
-    }
-    renderEmployees(empFilteredList);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  function changeEmpPage(dir) {
+    const totalPages = Math.ceil(empFilteredList.length / empItemsPerPage);
+    if (dir === "prev" && empCurrentPage > 1) goToEmpPage(empCurrentPage - 1);
+    else if (dir === "next" && empCurrentPage < totalPages)
+      goToEmpPage(empCurrentPage + 1);
   }
 
   function goToEmpPage(page) {
@@ -1417,3 +1311,4 @@
     }
   }
 </script>
+```

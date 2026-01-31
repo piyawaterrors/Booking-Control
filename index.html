@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
   <head>
     <meta charset="UTF-8" />
@@ -21,8 +21,7 @@
     </script>
 
     <!-- Centralized Styles -->
-    <?!= include('style'); ?>
-    <?!= include('PDFGenerator'); ?>
+    <?!= include('style'); ?> <?!= include('PDFGenerator'); ?>
   </head>
   <body class="bg-gray-50">
     <!-- Main App Container -->
@@ -33,13 +32,90 @@
 
     <script>
       // ========================================
-      // SESSION MANAGEMENT (Client-Side)
+      // GLOBAL UTILITIES & STATE
+      // ========================================
+      var currentUser = window.currentUser || null;
+      var currentPage = window.currentPage || "login";
+
+      /**
+       * Format Currency (THB)
+       */
+      function formatCurrency(num) {
+        return Number(num || 0).toLocaleString("th-TH", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+
+      /**
+       * Format Date (Thai Locale)
+       */
+      function formatDate(dateStr) {
+        if (!dateStr) return "-";
+        try {
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) return dateStr;
+          return d.toLocaleDateString("th-TH");
+        } catch (e) {
+          return dateStr;
+        }
+      }
+
+      /**
+       * Format Date to ISO (YYYY-MM-DD)
+       */
+      function formatDateToISO(date) {
+        if (!date) return "";
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return "";
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      /**
+       * Format Date to Thai Format (DD/MM/YYYY)
+       */
+      function formatDateThai(date) {
+        if (!date) return "-";
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return date;
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+
+      /**
+       * Update DateTime
+       */
+      function updateDateTime() {
+        const now = new Date();
+        const options = {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        };
+        const dateTimeElement = document.getElementById("currentDateTime");
+        if (dateTimeElement) {
+          dateTimeElement.textContent = now.toLocaleDateString(
+            "th-TH",
+            options,
+          );
+        }
+      }
+
+      // ========================================
+      // SESSION MANAGEMENT (Standardized)
       // ========================================
 
       /**
        * Save Session to localStorage
        */
-      function saveSession(sessionData) {
+      function saveSessionToStorage(sessionData) {
         localStorage.setItem("bookingSession", JSON.stringify(sessionData));
       }
 
@@ -52,17 +128,14 @@
 
         try {
           const session = JSON.parse(sessionString);
-
-          // ตรวจสอบว่า Session หมดอายุหรือไม่ (24 ชั่วโมง)
           const now = new Date().getTime();
-          const sessionAge = now - session.loginTime;
+          const sessionAge = now - (session.loginTime || 0);
           const maxAge = 24 * 60 * 60 * 1000; // 24 hours
 
           if (sessionAge > maxAge) {
             clearSessionStorage();
             return null;
           }
-
           return session;
         } catch (error) {
           return null;
@@ -84,75 +157,105 @@
       }
 
       // ========================================
-      // GLOBAL VARIABLES & STATE
-      // ========================================
-      let currentUser = null;
-      let currentPage = "login";
-
-      // ========================================
-      // SHARED UTILITY FUNCTIONS (ใช้ทุกหน้า)
+      // PREMIUM TOAST NOTIFICATION SYSTEM
       // ========================================
 
-      /**
-       * Toast Notification Function
-       */
-      function showToast(message, type = "success", duration = 3000) {
+      function showToast(message, type = "info", duration = 4000) {
+        let container = document.querySelector(".toast-container");
+        if (!container) {
+          container = document.createElement("div");
+          container.className = "toast-container";
+          document.body.appendChild(container);
+        }
+
+        const configs = {
+          success: {
+            title: "สำเร็จ",
+            icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+          },
+          error: {
+            title: "เกิดข้อผิดพลาด",
+            icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>',
+          },
+          warning: {
+            title: "แจ้งเตือน",
+            icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>',
+          },
+          info: {
+            title: "ข้อมูล",
+            icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+          },
+        };
+
+        const config = configs[type] || configs.info;
         const toast = document.createElement("div");
-        const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
-        const icon =
-          type === "success"
-            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
-            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
-
-        toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-2xl mb-4 transform transition-all duration-500 translate-x-full hover:scale-105 cursor-pointer`;
+        toast.className = `toast toast-${type}`;
         toast.innerHTML = `
-        <div class="flex items-center space-x-3">
-          <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            ${icon}
-          </svg>
-          <span class="font-medium">${message}</span>
-        </div>
-      `;
+          <div class="toast-icon">${config.icon}</div>
+          <div class="toast-content">
+            <div class="toast-title">${config.title}</div>
+            <div class="toast-message">${message}</div>
+          </div>
+          <div class="toast-progress">
+            <div class="toast-progress-bar" style="animation: toastProgress ${duration}ms linear forwards"></div>
+          </div>
+        `;
 
-        // คลิกเพื่อปิด Toast
-        toast.addEventListener("click", function () {
-          toast.classList.add("translate-x-full");
+        container.appendChild(toast);
+
+        const removeToast = () => {
+          toast.classList.add("toast-fade-out");
           setTimeout(() => toast.remove(), 300);
-        });
+        };
 
-        document.getElementById("toastContainer").appendChild(toast);
-
-        // แสดง Toast
-        setTimeout(() => {
-          toast.classList.remove("translate-x-full");
-        }, 100);
-
-        // ซ่อน Toast อัตโนมัติ
-        setTimeout(() => {
-          toast.classList.add("translate-x-full");
-          setTimeout(() => toast.remove(), 300);
-        }, duration);
+        const timeoutId = setTimeout(removeToast, duration);
+        toast.onclick = () => {
+          clearTimeout(timeoutId);
+          removeToast();
+        };
       }
 
       /**
-       * Update DateTime (ใช้ใน main.html)
+       * Modal Management
        */
-      function updateDateTime() {
-        const now = new Date();
-        const options = {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        };
-        const dateTimeElement = document.getElementById("currentDateTime");
-        if (dateTimeElement) {
-          dateTimeElement.textContent = now.toLocaleDateString(
-            "th-TH",
-            options
-          );
+      function openModal(modalId, contentId = null) {
+        const modal = document.getElementById(modalId);
+        const modalContent = contentId
+          ? document.getElementById(contentId)
+          : modal.querySelector("div");
+
+        if (!modal) return;
+
+        modal.classList.remove("hidden");
+        modal.classList.add("modal-show");
+
+        if (modalContent) {
+          setTimeout(() => {
+            modalContent.classList.add("modal-content-show");
+          }, 10);
         }
+      }
+
+      function closeModal(modalId, contentId = null) {
+        const modal = document.getElementById(modalId);
+        const modalContent = contentId
+          ? document.getElementById(contentId)
+          : modal.querySelector("div");
+
+        if (!modal) return;
+
+        modal.classList.add("modal-hide");
+        if (modalContent) modalContent.classList.add("modal-content-hide");
+
+        setTimeout(() => {
+          modal.classList.add("hidden");
+          modal.classList.remove("modal-show", "modal-hide");
+          if (modalContent)
+            modalContent.classList.remove(
+              "modal-content-show",
+              "modal-content-hide",
+            );
+        }, 300);
       }
 
       // ========================================
@@ -160,40 +263,114 @@
       // ========================================
 
       /**
-       * Load Page Content
+       * Pre-render Role Filtering & Pre-hydration
+       * Filters and prepares the HTML string before it hits the DOM to eliminate flickers
        */
+      function applyRoleFiltering(html, role) {
+        if (!html) return html;
+
+        const session = getSessionFromStorage();
+        if (!session) return html;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // 1. Filter Sidebar Items (Strict Role Access)
+        const menuItems = doc.querySelectorAll(".sidebar-item");
+        menuItems.forEach((item) => {
+          const requiredRole = item.getAttribute("data-role");
+          const pageName = item.getAttribute("data-page");
+          let isVisible = true;
+
+          if (requiredRole) {
+            const allowedRoles = requiredRole.split(",").map((r) => r.trim());
+            if (!allowedRoles.includes(role) && role !== "Owner")
+              isVisible = false;
+          }
+          if (role === "OP" && pageName !== "booking") isVisible = false;
+          if (role === "AR_AP" || role === "Cost") {
+            let allowedPages = [
+              "booking",
+              "payment-approval",
+              "refund",
+              "programs",
+              "locations",
+            ];
+            if (role === "Cost") allowedPages.push("dashboard", "reports");
+            if (!allowedPages.includes(pageName)) isVisible = false;
+          }
+
+          if (!isVisible) item.remove();
+        });
+
+        // 2. Pre-hydrate User Profile (Immediate Display)
+        const userNameEl = doc.getElementById("userName");
+        const userRoleEl = doc.getElementById("userRole");
+        const userInitialEl = doc.getElementById("userInitial");
+
+        if (userNameEl)
+          userNameEl.textContent = session.fullName || session.username;
+        if (userRoleEl) userRoleEl.textContent = session.role;
+        if (userInitialEl)
+          userInitialEl.textContent = (session.fullName || session.username)
+            .charAt(0)
+            .toUpperCase();
+
+        // 3. Set Correct Initial Page Container (Prevent Dashboard Flicker)
+        let activePage = localStorage.getItem("currentPage");
+        if (!activePage) {
+          if (role === "OP") activePage = "booking";
+          else if (role === "Admin" || role === "Cost" || role === "Owner")
+            activePage = "dashboard";
+          else if (role === "AR_AP") activePage = "payment-approval";
+          else activePage = "booking";
+        }
+
+        const containers = doc.querySelectorAll(".page-container");
+        containers.forEach((c) => {
+          if (c.id === "page-" + activePage) c.classList.add("active");
+          else c.classList.remove("active");
+        });
+
+        // Sync Sidebar Items Active State
+        doc.querySelectorAll(".sidebar-item").forEach((item) => {
+          if (item.getAttribute("data-page") === activePage)
+            item.classList.add("active");
+          else item.classList.remove("active");
+        });
+
+        // Set Role Class on Body for CSS rules to kick in immediately
+        document.body.className = "role-" + role;
+
+        return doc.body.innerHTML;
+      }
+
       function loadPage(pageName) {
         currentPage = pageName;
         const app = document.getElementById("app");
 
         google.script.run
           .withSuccessHandler(function (html) {
-            // แยก HTML และ Script
+            // Apply filtering before any DOM interaction if loading 'main'
+            if (pageName === "main") {
+              const session = getSessionFromStorage();
+              if (session && session.role) {
+                html = applyRoleFiltering(html, session.role);
+              }
+            }
+
             const tempDiv = document.createElement("div");
             tempDiv.innerHTML = html;
-
-            // ดึง scripts ออกมา
             const scripts = tempDiv.querySelectorAll("script");
-
-            // ใส่ HTML (ไม่รวม script)
             app.innerHTML = html;
 
-            // Execute scripts manually
             scripts.forEach((oldScript) => {
               const newScript = document.createElement("script");
-
-              // Copy attributes
               Array.from(oldScript.attributes).forEach((attr) => {
                 newScript.setAttribute(attr.name, attr.value);
               });
-
-              // Copy content
               newScript.textContent = oldScript.textContent;
-
-              // Append to body to execute
               document.body.appendChild(newScript);
-
-              // Remove after execution
               setTimeout(() => {
                 document.body.removeChild(newScript);
               }, 10);
@@ -205,32 +382,22 @@
           .include(pageName);
       }
 
-      /**
-       * Navigate to Page (for internal navigation within main app)
-       */
       function navigateTo(pageName) {
-        // Hide all page containers
         document.querySelectorAll(".page-container").forEach((page) => {
           page.classList.remove("active");
         });
 
-        // Show selected page
         const targetPage = document.getElementById(`page-${pageName}`);
         if (targetPage) {
           targetPage.classList.add("active");
-
-          // Update active menu
           document.querySelectorAll(".sidebar-item").forEach((item) => {
             item.classList.remove("active");
           });
           const activeMenu = document.querySelector(
-            `[data-page="${pageName}"]`
+            `[data-page="${pageName}"]`,
           );
-          if (activeMenu) {
-            activeMenu.classList.add("active");
-          }
+          if (activeMenu) activeMenu.classList.add("active");
 
-          // Update page title
           const titles = {
             dashboard: { title: "Dashboard", subtitle: "ภาพรวมระบบ" },
             booking: {
@@ -241,6 +408,23 @@
               title: "จัดการพนักงาน",
               subtitle: "จัดการข้อมูลพนักงานและสิทธิ์การใช้งาน",
             },
+            locations: {
+              title: "จัดการสถานที่",
+              subtitle: "จัดการข้อมูลสถานที่เที่ยว",
+            },
+            programs: {
+              title: "จัดการโปรแกรม",
+              subtitle: "จัดการข้อมูลโปรแกรมทัวร์",
+            },
+            refund: {
+              title: "รายการคืนเงิน",
+              subtitle: "จัดการข้อมูลการคืนเงินให้ลูกค้า",
+            },
+            "payment-approval": {
+              title: "อนุมัติการชำระเงิน",
+              subtitle: "ตรวจสอบและอนุมัติหลักฐานการชำระเงิน",
+            },
+            reports: { title: "รายงาน", subtitle: "สรุปข้อมูลสถิติและการเงิน" },
           };
 
           if (titles[pageName]) {
@@ -250,26 +434,38 @@
               titles[pageName].subtitle;
           }
 
-          // Call page-specific load functions
-          if (pageName === "dashboard" && typeof loadDashboard === "function") {
+          if (pageName === "dashboard" && typeof loadDashboard === "function")
             loadDashboard();
-          } else if (
-            pageName === "booking" &&
-            typeof loadBookings === "function"
-          ) {
+          else if (pageName === "booking" && typeof loadBookings === "function")
             loadBookings();
-          } else if (
+          else if (
             pageName === "employees" &&
             typeof loadEmployees === "function"
-          ) {
+          )
             loadEmployees();
-          }
+          else if (
+            pageName === "locations" &&
+            typeof loadLocations === "function"
+          )
+            loadLocations();
+          else if (
+            pageName === "programs" &&
+            typeof loadPrograms === "function"
+          )
+            loadPrograms();
+          else if (
+            pageName === "refund" &&
+            typeof loadRefundPage === "function"
+          )
+            loadRefundPage();
+          else if (
+            pageName === "payment-approval" &&
+            typeof loadPaymentApprovalPage === "function"
+          )
+            loadPaymentApprovalPage();
         }
       }
 
-      /**
-       * Logout (ใช้ใน main.html)
-       */
       function logout() {
         google.script.run
           .withSuccessHandler(function (response) {
@@ -288,23 +484,15 @@
       // ========================================
 
       window.onload = function () {
-        // Get initial page from server (if passed via doGet)
         const initialPage = "<?= initialPage ?>";
-
-        // Check if user is logged in from localStorage
         const session = getSessionFromStorage();
 
         if (session && session.sessionToken) {
-          // Validate session with server
           google.script.run
             .withSuccessHandler(function (response) {
               if (response.success) {
                 currentUser = response.data;
-
-                // Load main page
                 loadPage("main");
-
-                // Set hash if initialPage is provided
                 if (
                   initialPage &&
                   initialPage !== "null" &&

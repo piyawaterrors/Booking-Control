@@ -123,7 +123,7 @@
           href="#"
           data-page="payment-approval"
           data-role="AR_AP,Owner,Cost"
-          class="sidebar-item hidden flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
+          class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
         >
           <svg
             class="w-5 h-5"
@@ -146,7 +146,7 @@
           href="#"
           data-page="refund"
           data-role="AR_AP,Owner,Cost"
-          class="sidebar-item hidden flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
+          class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
         >
           <svg
             class="w-5 h-5"
@@ -431,111 +431,131 @@
 
 <script>
   /**
-   * Session Management Functions
+   * SHARED APP UTILITIES (UI Specific)
    */
-  function saveSessionToStorage(sessionData) {
-    try {
-      localStorage.setItem("bookingSession", JSON.stringify(sessionData));
-    } catch (error) {
-      console.error("Error saving session:", error);
-    }
-  }
-
-  function getSessionFromStorage() {
-    try {
-      const session = localStorage.getItem("bookingSession");
-      return session ? JSON.parse(session) : null;
-    } catch (error) {
-      console.error("Error reading session:", error);
-      return null;
-    }
-  }
-
-  function clearSessionStorage() {
-    try {
-      localStorage.removeItem("bookingSession");
-    } catch (error) {
-      console.error("Error clearing session:", error);
-    }
-  }
 
   /**
-   * Premium Toast Notification System
+   * Convert Thai Date Format to Input Format
+   * Converts dd/MM/yyyy to yyyy-MM-dd for HTML date inputs
    */
-  function showToast(message, type = "info", duration = 4000) {
-    // 1. Ensure Container exists
-    let container = document.querySelector(".toast-container");
-    if (!container) {
-      container = document.createElement("div");
-      container.className = "toast-container";
-      document.body.appendChild(container);
+  function convertThaiDateToInputFormat(thaiDate) {
+    if (!thaiDate) return "";
+
+    // Check if already in yyyy-MM-dd format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(thaiDate)) {
+      return thaiDate;
     }
 
-    // 2. Define Icons and Titles
-    const configs = {
-      success: {
-        title: "สำเร็จ",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
-      },
-      error: {
-        title: "เกิดข้อผิดพลาด",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>',
-      },
-      warning: {
-        title: "แจ้งเตือน",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>',
-      },
-      info: {
-        title: "ข้อมูล",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
-      },
-    };
-
-    const config = configs[type] || configs.info;
-
-    // 3. Create Toast Element
-    const toast = document.createElement("div");
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-      <div class="toast-icon">${config.icon}</div>
-      <div class="toast-content">
-        <div class="toast-title">${config.title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <div class="toast-progress">
-        <div class="toast-progress-bar" style="animation: toastProgress ${duration}ms linear forwards"></div>
-      </div>
-    `;
-
-    // Add Keyframes dynamically if not exists
-    if (!document.getElementById("toast-animation-style")) {
-      const style = document.createElement("style");
-      style.id = "toast-animation-style";
-      style.innerHTML = `
-        @keyframes toastProgress {
-          from { transform: scaleX(1); }
-          to { transform: scaleX(0); }
-        }
-      `;
-      document.head.appendChild(style);
+    // Parse dd/MM/yyyy format
+    const parts = thaiDate.split("/");
+    if (parts.length === 3) {
+      const day = parts[0].padStart(2, "0");
+      const month = parts[1].padStart(2, "0");
+      const year = parts[2];
+      return `${year}-${month}-${day}`;
     }
 
-    // 4. Show and Auto-remove
-    container.appendChild(toast);
-
-    const removeToast = () => {
-      toast.classList.add("toast-fade-out");
-      setTimeout(() => toast.remove(), 300);
-    };
-
-    const timeoutId = setTimeout(removeToast, duration);
-
-    // Click to dismiss
-    toast.onclick = () => {
-      clearTimeout(timeoutId);
-      removeToast();
-    };
+    return "";
   }
+
+  // Shared Application Utilities
+  window.AppUI = window.AppUI || {
+    toggleLoading: function (
+      btnId,
+      spinnerId,
+      textId,
+      isLoading,
+      defaultText,
+      loadingText,
+    ) {
+      const btn = document.getElementById(btnId);
+      const spinner = document.getElementById(spinnerId);
+      const text = document.getElementById(textId);
+      if (isLoading) {
+        if (btn) btn.disabled = true;
+        if (spinner) spinner.classList.remove("hidden");
+        if (text) text.textContent = loadingText;
+      } else {
+        if (btn) btn.disabled = false;
+        if (spinner) spinner.classList.add("hidden");
+        if (text) text.textContent = defaultText;
+      }
+    },
+    // Wrappers for global formatters to maintain backward compatibility
+    formatCurrency: function (num) {
+      return formatCurrency(num);
+    },
+    formatDate: function (dateStr) {
+      return formatDate(dateStr);
+    },
+  };
+  var AppUI = window.AppUI;
+
+  /**
+   * SHARED PAGINATION SYSTEM
+   */
+  window.AppPagination = window.AppPagination || {
+    render: function (config) {
+      const {
+        currentPage,
+        itemsPerPage,
+        totalItems,
+        onPageChange,
+        containerIds = {},
+      } = config;
+
+      const ids = {
+        info: containerIds.info || "paginationInfo",
+        mobile: containerIds.mobile || "mobilePageInfo",
+        prev: containerIds.prev || "prevPageBtn",
+        next: containerIds.next || "nextPageBtn",
+        numbers: containerIds.numbers || "pageNumbers",
+        ...containerIds,
+      };
+
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+      const infoEl = document.getElementById(ids.info);
+      if (infoEl)
+        infoEl.textContent = `หน้า ${currentPage} จาก ${totalPages} (${totalItems} รายการ)`;
+
+      const mobileEl = document.getElementById(ids.mobile);
+      if (mobileEl) mobileEl.textContent = `${currentPage} / ${totalPages}`;
+
+      const prevBtn = document.getElementById(ids.prev);
+      if (prevBtn) prevBtn.disabled = currentPage <= 1;
+
+      const nextBtn = document.getElementById(ids.next);
+      if (nextBtn)
+        nextBtn.disabled = currentPage >= totalPages || totalItems === 0;
+
+      const numbersEl = document.getElementById(ids.numbers);
+      if (numbersEl) {
+        let html = "";
+        let start = Math.max(1, currentPage - 2);
+        let end = Math.min(totalPages, start + 4);
+        if (end - start < 4) start = Math.max(1, end - 4);
+
+        for (let i = start; i <= end; i++) {
+          html += `
+            <button onclick="${onPageChange}(${i})" class="w-10 h-10 flex items-center justify-center rounded-lg border text-sm font-bold transition-all ${
+              i === currentPage
+                ? "bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            }">
+              ${i}
+            </button>
+          `;
+        }
+        numbersEl.innerHTML = html;
+      }
+    },
+    getPaginatedItems: function (items, page, perPage) {
+      const start = (page - 1) * perPage;
+      return items.slice(start, start + perPage);
+    },
+  };
+  var AppPagination = window.AppPagination;
 
   /**
    * Page State Management (localStorage)
@@ -584,46 +604,20 @@
       ? currentUser.fullName.charAt(0).toUpperCase()
       : currentUser.username.charAt(0).toUpperCase();
 
+    // 1. Refresh Menu (Click handlers and fallback visibility)
     loadMenu(currentUser.role);
 
-    // Load last visited page or default
-    let lastPage = getCurrentPage();
-
-    // Security Check: Prevent non-owners from accessing restricted pages even if cached
-    if (lastPage === "employees" && currentUser.role !== "Owner") {
-      lastPage = null; // Force default redirect
+    // 2. Navigate (Already pre-set by index.html, but confirms state)
+    let activePage = getCurrentPage();
+    if (!activePage) {
+      // Fallback logic
+      if (currentUser.role === "OP") activePage = "booking";
+      else if (["Admin", "Cost", "Owner"].includes(currentUser.role))
+        activePage = "dashboard";
+      else if (currentUser.role === "AR_AP") activePage = "payment-approval";
+      else activePage = "booking";
     }
-
-    // Security Check: Prevent non-AR_AP/Owner from accessing payment-approval
-    if (
-      lastPage === "payment-approval" &&
-      currentUser.role !== "AR_AP" &&
-      currentUser.role !== "Owner"
-    ) {
-      lastPage = null; // Force default redirect
-    }
-
-    if (lastPage) {
-      // โหลดหน้าที่เคยเปิดล่าสุด
-      loadPageContent(lastPage);
-      navigateTo(lastPage);
-    } else {
-      // โหลดหน้า default ตาม role
-      if (
-        currentUser.role === "Admin" ||
-        currentUser.role === "Cost" ||
-        currentUser.role === "Owner"
-      ) {
-        loadPageContent("dashboard");
-        navigateTo("dashboard");
-      } else if (currentUser.role === "AR_AP") {
-        loadPageContent("payment-approval");
-        navigateTo("payment-approval");
-      } else if (currentUser.role === "OP") {
-        loadPageContent("booking");
-        navigateTo("booking");
-      }
-    }
+    navigateTo(activePage);
 
     // Validate in background
     google.script.run
@@ -648,69 +642,28 @@
    */
   function loadMenu(role) {
     const menuItems = document.querySelectorAll(".sidebar-item");
+    if (menuItems.length === 0) return;
 
     menuItems.forEach((item) => {
-      const requiredRole = item.getAttribute("data-role");
-      const pageName = item.getAttribute("data-page");
-
-      let isVisible = true;
-
-      // Rule 1: Role Specific Menu (e.g. Employees for Owner, Payment Approval for AR_AP/Owner)
-      if (requiredRole) {
-        // Support multiple roles separated by comma
-        const allowedRoles = requiredRole.split(",").map((r) => r.trim());
-
-        // Check if current role is in allowed roles OR if user is Owner (Owner has access to everything)
-        if (!allowedRoles.includes(role) && role !== "Owner") {
-          isVisible = false;
-        }
-      }
-
-      // Rule 2: OP Role Restriction (Removed to allow seeing all data)
-      /*
-      if (role === "OP" && pageName !== "booking") {
-        isVisible = false;
-      }
-      */
-
-      // Rule 3: AR_AP/Cost Role - Restrictions
-      if (role === "AR_AP" || role === "Cost") {
-        let allowedPages = [
-          "booking",
-          "payment-approval",
-          "refund",
-          "programs",
-          "locations",
-        ];
-        if (role === "Cost") {
-          allowedPages.push("dashboard", "reports");
-        }
-
-        if (!allowedPages.includes(pageName)) {
-          isVisible = false;
-        }
-      }
-
-      if (isVisible) {
-        item.classList.remove("hidden");
-      } else {
-        item.classList.add("hidden");
-      }
+      // Visibility is managed by index.html pre-filtering and style.html CSS rules.
     });
 
-    // Add click handlers
-    menuItems.forEach((item) => {
-      item.addEventListener("click", function (e) {
-        e.preventDefault();
-        const pageName = this.getAttribute("data-page");
-        if (pageName) {
-          navigateTo(pageName);
-          if (window.innerWidth < 1024) {
-            toggleSidebar();
+    // Add click handlers (Using a more specific check to handle re-injection)
+    const navMenu = document.querySelector("#sidebar nav");
+    if (navMenu && !navMenu.dataset.menuInitialized) {
+      navMenu.addEventListener("click", function (e) {
+        const item = e.target.closest(".sidebar-item");
+        if (item) {
+          e.preventDefault();
+          const pageName = item.getAttribute("data-page");
+          if (pageName) {
+            navigateTo(pageName);
+            if (window.innerWidth < 1024) toggleSidebar();
           }
         }
       });
-    });
+      navMenu.dataset.menuInitialized = "true";
+    }
   }
 
   /**
@@ -770,7 +723,7 @@
           titles[pageName].subtitle;
       }
 
-      // Save current page to localStorage
+      // Save current page state
       saveCurrentPage(pageName);
 
       // Call page load function
@@ -870,7 +823,13 @@
     }, 500);
   }
 
-  // Initialize
+  // 1. Initial Quick Load (Pre-navigation)
+  var initialSession = getSessionFromStorage();
+  if (initialSession && initialSession.role) {
+    loadMenu(initialSession.role);
+  }
+
+  // 2. Full Init
   loadUserInfo();
 </script>
 <!-- Modal Profile -->

@@ -441,7 +441,7 @@
 
 <script>
   // Global filter state
-  let currentFilter = {
+  var dashboardFilter = {
     type: "month",
     startDate: null,
     endDate: null,
@@ -488,7 +488,7 @@
     document.getElementById("endDate").value = endDate;
 
     // Update filter state
-    currentFilter = { type, startDate, endDate };
+    dashboardFilter = { type, startDate, endDate };
 
     // Reload dashboard with new filter
     loadDashboard(startDate, endDate);
@@ -514,12 +514,11 @@
     // Update filter display
     const start = new Date(startDate);
     const end = new Date(endDate);
-    document.getElementById(
-      "currentFilterText"
-    ).textContent = `${formatDateThai(start)} - ${formatDateThai(end)}`;
+    document.getElementById("currentFilterText").textContent =
+      `${formatDateThai(start)} - ${formatDateThai(end)}`;
 
     // Update filter state
-    currentFilter = { type: "custom", startDate, endDate };
+    dashboardFilter = { type: "custom", startDate, endDate };
 
     // Reload dashboard
     loadDashboard(startDate, endDate);
@@ -559,11 +558,6 @@
     if (startDateEl && endDateEl) {
       startDateEl.value = formatDateForInput(firstDay);
       endDateEl.value = formatDateForInput(lastDay);
-      console.log(
-        "Date inputs initialized:",
-        startDateEl.value,
-        endDateEl.value
-      );
     } else {
       console.error("Date input elements not found!");
     }
@@ -712,7 +706,7 @@
       const filterTextEl = document.getElementById("currentFilterText");
       if (filterTextEl) filterTextEl.textContent = "เดือนนี้";
 
-      currentFilter = {
+      dashboardFilter = {
         type: "month",
         startDate: startDate,
         endDate: endDate,
@@ -732,18 +726,18 @@
             "฿" + Number(data.totalSales || 0).toLocaleString();
 
           document.getElementById("totalBookings").textContent = Number(
-            data.totalBookings || 0
+            data.totalBookings || 0,
           ).toLocaleString();
 
           // Update completed and confirmed counts
           document.getElementById("completedCount").textContent = `${Number(
-            data.completedBookings || 0
+            data.completedBookings || 0,
           ).toLocaleString()} Complete`;
           document.getElementById("confirmedCount").textContent = `${Number(
-            data.confirmedBookings || 0
+            data.confirmedBookings || 0,
           ).toLocaleString()} Confirm`;
           document.getElementById("cancelledCount").textContent = `${Number(
-            data.cancelledBookings || 0
+            data.cancelledBookings || 0,
           ).toLocaleString()} Cancel`;
 
           document.getElementById("pendingAmount").textContent =
@@ -829,7 +823,7 @@
               }</span>
             </div>
             <span class="text-sm font-bold text-gray-900">฿${Number(
-              program.amount
+              program.amount,
             ).toLocaleString()}</span>
           </div>
           <div class="w-full bg-gray-100 rounded-full h-2">
@@ -887,7 +881,7 @@
               }</span>
             </div>
             <span class="text-sm font-bold text-gray-900">฿${Number(
-              amount
+              amount,
             ).toLocaleString()}</span>
           </div>
           <div class="w-full bg-gray-100 rounded-full h-2">
@@ -945,7 +939,7 @@
               }</span>
             </div>
             <span class="text-sm font-bold text-gray-900">฿${Number(
-              amount
+              amount,
             ).toLocaleString()}</span>
           </div>
           <div class="w-full bg-gray-100 rounded-full h-2">

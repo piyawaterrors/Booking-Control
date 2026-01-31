@@ -302,7 +302,7 @@
 <div
   id="viewRefundModal"
   class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
-  onclick="if(event.target === this) closeViewRefundModal()"
+  onclick="if (event.target === this) closeViewRefundModal();"
 >
   <div
     id="viewRefundModalContent"
@@ -357,10 +357,10 @@
 
 <script>
   // State Management
-  let allRefunds = []; // This stores the data returned by the server for the current date range
-  let currentFilteredRefunds = []; // This stores the result of client-side text search
-  let currentRefundPage = 1;
-  let refundItemsPerPage = 10;
+  var allRefunds = [];
+  var currentFilteredRefunds = [];
+  var currentRefundPage = 1;
+  var refundItemsPerPage = 10;
 
   /**
    * Initialize Refund Page
@@ -390,57 +390,70 @@
    * Handle Successful Data Fetch
    */
   function onRefundsLoaded(response) {
-    if (!response.success) {
-      showToast(response.message || "ไม่สามารถดึงข้อมูลการคืนเงินได้", "error");
-      hideRefundLoading();
+    hideRefundLoading();
+
+    if (!response || !response.success) {
+      showToast(
+        response?.message || "ไม่สามารถดึงข้อมูลการคืนเงินได้",
+        "error",
+      );
+      allRefunds = [];
+      currentFilteredRefunds = [];
+      renderRefunds();
       return;
     }
 
+    // Store data
     allRefunds = response.data || [];
+    currentFilteredRefunds = [...allRefunds];
+    currentRefundPage = 1;
 
-    // Apply any existing search text filter to the newly loaded data
-    searchRefunds();
+    // Apply client-side filters (search)
+    applyRefundFilters();
   }
 
   /**
-   * Client-side search (like filterEmployees)
+   * Show/Hide Loading State
    */
-  function searchRefunds() {
-    const searchText = document
+  function showRefundLoading() {
+    const tbody = document.getElementById("refundTableBody");
+    const gridBody = document.getElementById("refundGridBody");
+
+    const loadingHtml = `<tr><td colspan="7" class="px-6 py-12 text-center"><div class="flex flex-col items-center justify-center space-y-3"><div class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div><p class="text-gray-400 text-sm font-medium animate-pulse">กำลังดึงข้อมูลการคืนเงิน...</p></div></td></tr>`;
+    const gridLoadingHtml = `<div class="col-span-full py-12 text-center"><div class="flex flex-col items-center justify-center space-y-3"><div class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div><p class="text-gray-400 text-sm font-medium animate-pulse">กำลังดึงข้อมูลการคืนเงิน...</p></div></div>`;
+
+    if (tbody) tbody.innerHTML = loadingHtml;
+    if (gridBody) gridBody.innerHTML = gridLoadingHtml;
+  }
+
+  function hideRefundLoading() {
+    // Loading will be replaced by actual data or empty state
+  }
+
+  /**
+   * Filtering and Search
+   */
+  function filterRefunds() {
+    currentRefundPage = 1;
+    applyRefundFilters();
+  }
+
+  function applyRefundFilters() {
+    const searchQuery = document
       .getElementById("refundSearchInput")
       .value.toLowerCase();
-    const dateFrom = document.getElementById("refundFilterDateFrom").value;
-    const dateTo = document.getElementById("refundFilterDateTo").value;
 
     currentFilteredRefunds = allRefunds.filter((r) => {
-      // Search filter
       const matchSearch =
-        !searchText ||
-        (r.refundId || "").toLowerCase().includes(searchText) ||
-        (r.bookingId || "").toLowerCase().includes(searchText) ||
-        (r.customerName || "").toLowerCase().includes(searchText) ||
-        (r.bankName || "").toLowerCase().includes(searchText) ||
-        (r.accountNumber || "").toLowerCase().includes(searchText) ||
-        (r.note || "").toLowerCase().includes(searchText) ||
-        (r.createdBy || "").toLowerCase().includes(searchText);
+        (r.refundId || "").toLowerCase().includes(searchQuery) ||
+        (r.bookingId || "").toLowerCase().includes(searchQuery) ||
+        (r.customerName || "").toLowerCase().includes(searchQuery) ||
+        (r.bankName || "").toLowerCase().includes(searchQuery) ||
+        (r.accountNumber || "").toLowerCase().includes(searchQuery) ||
+        (r.note || "").toLowerCase().includes(searchQuery) ||
+        (r.createdBy || "").toLowerCase().includes(searchQuery);
 
-      // Date filter (Client-side sync)
-      let matchDate = true;
-      if (dateFrom || dateTo) {
-        // Date format in r.createdAt is "dd/MM/yyyy HH:mm:ss"
-        const createdAt = r.createdAt || "";
-        if (createdAt.includes("/")) {
-          const parts = createdAt.split(" ")[0].split("/");
-          if (parts.length === 3) {
-            const comparableDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            matchDate =
-              (!dateFrom || comparableDate >= dateFrom) &&
-              (!dateTo || comparableDate <= dateTo);
-          }
-        }
-      }
-
-      return matchSearch && matchDate;
+      return matchSearch;
     });
 
     // Sort by refundId descending (newest first)
@@ -448,174 +461,155 @@
       return (b.refundId || "").localeCompare(a.refundId || "");
     });
 
-    currentRefundPage = 1;
-    renderRefundPagination();
+    renderRefunds();
   }
 
   /**
-   * UI Rendering Functions
+   * Rendering
    */
-  function renderRefundPagination() {
-    const totalItems = currentFilteredRefunds.length;
-    const totalPages = Math.ceil(totalItems / refundItemsPerPage) || 1;
-
-    if (currentRefundPage > totalPages) currentRefundPage = totalPages;
-    if (currentRefundPage < 1) currentRefundPage = 1;
-
-    const startIndex = (currentRefundPage - 1) * refundItemsPerPage;
-    const endIndex = Math.min(startIndex + refundItemsPerPage, totalItems);
-    const paginatedItems = currentFilteredRefunds.slice(startIndex, endIndex);
-
-    // Update Info
-    document.getElementById(
-      "refundPaginationInfo"
-    ).textContent = `หน้า ${currentRefundPage} จาก ${totalPages} (${totalItems} รายการ)`;
-    document.getElementById(
-      "refundMobilePageInfo"
-    ).textContent = `${currentRefundPage} / ${totalPages}`;
-
-    // Update Buttons
-    document.getElementById("refundPrevPageBtn").disabled =
-      currentRefundPage === 1;
-    document.getElementById("refundNextPageBtn").disabled =
-      currentRefundPage === totalPages;
-
-    // Generate Page Numbers
-    let buttonsHtml = "";
-    let startPage = Math.max(1, currentRefundPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
-
-    for (let i = startPage; i <= endPage; i++) {
-      if (i < 1) continue;
-      buttonsHtml += `
-        <button onclick="goToRefundPage(${i})" class="w-10 h-10 flex items-center justify-center rounded-lg border text-sm font-bold transition-all ${
-        i === currentRefundPage
-          ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-100"
-          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-      }">
-          ${i}
-        </button>
-      `;
-    }
-    document.getElementById("refundPageNumbers").innerHTML = buttonsHtml;
-
-    displayRefunds(paginatedItems);
-  }
-
-  function displayRefunds(refunds) {
+  function renderRefunds() {
     const tbody = document.getElementById("refundTableBody");
     const gridBody = document.getElementById("refundGridBody");
+    const emptyState = document.getElementById("emptyRefundState");
 
-    if (!refunds || refunds.length === 0) {
-      const emptyHtml = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">ไม่พบข้อมูลการคืนเงิน</td></tr>`;
-      const gridEmptyHtml = `<div class="col-span-full py-12 text-center text-gray-500 text-sm">ไม่พบข้อมูลการคืนเงิน</div>`;
-      tbody.innerHTML = emptyHtml;
-      gridBody.innerHTML = gridEmptyHtml;
+    if (currentFilteredRefunds.length === 0) {
+      if (tbody) tbody.innerHTML = "";
+      if (gridBody) gridBody.innerHTML = "";
+      if (emptyState) emptyState.classList.remove("hidden");
+      updateRefundPaginationUI(0);
       return;
     }
 
-    // Render Table Body
-    // Render Table Body
-    tbody.innerHTML = refunds
-      .map(
-        (refund) => `
-      <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="viewRefundById('${
-        refund.refundId
-      }')">
-        <td class="px-6 py-4 text-sm font-bold text-gray-900">${
-          refund.refundId
-        }</td>
-        <td class="px-6 py-4 text-sm font-bold text-gray-900" onclick="event.stopPropagation();">${
-          refund.bookingId
-        }</td>
-        <td class="px-6 py-4"><div class="text-sm text-gray-900">${
-          refund.customerName
-        }</div></td>
-        <td class="px-6 py-4">
-          <div class="text-xs font-bold text-red-600 uppercase mb-0.5">${
-            refund.bankName
-          }</div>
-          <div class="text-sm font-medium text-gray-700">${formatBankAccount(
-            refund.accountNumber
-          )}</div>
-        </td>
-        <td class="px-6 py-4 text-right text-sm font-bold text-gray-900">฿${Number(
-          refund.refundAmount
-        ).toLocaleString()}</td>
-        <td class="px-6 py-4 text-sm text-gray-500">${refund.createdAt}</td>
-        <td class="px-6 py-4 text-center" onclick="event.stopPropagation();">
-          <button onclick="viewRefundById('${
-            refund.refundId
-          }')" class="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all" title="ดูรายละเอียด">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-          </button>
-        </td>
-      </tr>
-    `
-      )
-      .join("");
+    if (emptyState) emptyState.classList.add("hidden");
 
-    // Render Grid View
-    gridBody.innerHTML = refunds
-      .map(
-        (refund) => `
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3" onclick="viewRefundById('${
-        refund.refundId
-      }')">
-        <div class="flex justify-between items-start">
-          <span class="text-xs font-bold text-gray-400 ">${
-            refund.refundId
-          }</span>
-          <span class="text-xs text-gray-400">${refund.createdAt}</span>
+    const paginatedItems = AppPagination.getPaginatedItems(
+      currentFilteredRefunds,
+      currentRefundPage,
+      refundItemsPerPage,
+    );
+
+    let tableHtml = "";
+    let gridHtml = "";
+
+    paginatedItems.forEach((r) => {
+      // Table Row (Desktop)
+      tableHtml += `
+        <tr class="hover:bg-purple-50 transition-colors cursor-pointer" onclick="viewRefundById('${r.refundId}')">
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${r.refundId}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-bold">${r.bookingId}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+             <div class="flex flex-col">
+                <span class="font-bold text-gray-900">${r.customerName}</span>
+                <span class="text-xs text-gray-400">${r.bankName}</span>
+             </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${Number(r.refundAmount).toLocaleString()} THB</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(r.createdAt)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-center" onclick="event.stopPropagation()">
+            ${
+              r.slipUrl
+                ? `
+              <a href="${r.slipUrl}" target="_blank" class="inline-flex items-center px-3 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors border border-red-100">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                สลิป
+              </a>
+            `
+                : '<span class="text-gray-400 text-xs">-</span>'
+            }
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-center" onclick="event.stopPropagation()">
+            <button onclick="viewRefundById('${r.refundId}')" class="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            </button>
+          </td>
+        </tr>
+      `;
+
+      // Card (Mobile)
+      gridHtml += `
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3 cursor-pointer hover:shadow-md hover:border-purple-200 transition-all" onclick="viewRefundById('${r.refundId}')">
+          <div class="flex justify-between items-start">
+            <div class="space-y-1">
+              <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${r.refundId}</span>
+              <h4 class="text-sm font-bold text-indigo-600">${r.bookingId}</h4>
+            </div>
+            <span class="text-sm font-extrabold text-gray-900">${Number(r.refundAmount).toLocaleString()} THB</span>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-3">
+            <div class="flex items-center gap-3">
+              <div class="bg-white p-2 rounded-lg shadow-sm text-blue-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[10px] text-blue-600 font-bold uppercase">${r.bankName}</p>
+                <p class="text-xs font-bold text-gray-900 truncate">${r.customerName}</p>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center pt-2 border-t border-gray-50">
+            <span class="text-xs text-gray-500">${formatDate(r.createdAt)}</span>
+            <div class="flex gap-2" onclick="event.stopPropagation()">
+              ${r.slipUrl ? `<a href="${r.slipUrl}" target="_blank" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></a>` : ""}
+              <button onclick="viewRefundById('${r.refundId}')" class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="flex justify-between">
-            <span class="text-sm font-bold text-gray-900">${
-              refund.customerName
-            }</span>
-            <span class="text-sm font-bold text-red-600">฿${Number(
-              refund.refundAmount
-            ).toLocaleString()}</span>
-        </div>
-        <div class="flex justify-between text-xs">
-            <span class="text-gray-500">รหัสจอง: ${refund.bookingId}</span>
-            <span class="text-gray-500">${refund.bankName}</span>
-        </div>
-      </div>
-    `
-      )
-      .join("");
+      `;
+    });
+
+    if (tbody) tbody.innerHTML = tableHtml;
+    if (gridBody) gridBody.innerHTML = gridHtml;
+
+    updateRefundPaginationUI(currentFilteredRefunds.length);
   }
 
   /**
-   * Navigation and Size Functions
+   * Pagination
    */
+  function updateRefundPaginationUI(totalItems) {
+    AppPagination.render({
+      currentPage: currentRefundPage,
+      itemsPerPage: refundItemsPerPage,
+      totalItems: totalItems,
+      onPageChange: "goToRefundPage",
+      containerIds: {
+        info: "refundPaginationInfo",
+        mobile: "refundMobilePageInfo",
+        prev: "refundPrevPageBtn",
+        next: "refundNextPageBtn",
+        numbers: "refundPageNumbers",
+      },
+    });
+  }
+
   function goToRefundPage(page) {
     currentRefundPage = page;
-    renderRefundPagination();
+    renderRefunds();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function changeRefundPage(direction) {
-    const totalItems = currentFilteredRefunds.length;
-    const totalPages = Math.ceil(totalItems / refundItemsPerPage) || 1;
+    const totalPages =
+      Math.ceil(currentFilteredRefunds.length / refundItemsPerPage) || 1;
     if (direction === "prev" && currentRefundPage > 1) currentRefundPage--;
     else if (direction === "next" && currentRefundPage < totalPages)
       currentRefundPage++;
-    renderRefundPagination();
+    renderRefunds();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function changeRefundPageSize() {
     refundItemsPerPage = parseInt(
-      document.getElementById("refundItemsPerPage").value
+      document.getElementById("refundItemsPerPage").value,
     );
     currentRefundPage = 1;
-    renderRefundPagination();
+    renderRefunds();
   }
 
   /**
-   * Date Filter Functions (These trigger Server calls)
+   * Date Filter
    */
   function setRefundDateFilter(filterType) {
     const today = new Date();
@@ -628,21 +622,21 @@
         filterText = "ทั้งหมด";
         break;
       case "today":
-        dateFrom = dateTo = formatDateToYYYYMMDD(today);
+        dateFrom = dateTo = formatDateToISO(today);
         filterText = "วันนี้";
         break;
       case "month":
-        dateFrom = formatDateToYYYYMMDD(
-          new Date(today.getFullYear(), today.getMonth(), 1)
+        dateFrom = formatDateToISO(
+          new Date(today.getFullYear(), today.getMonth(), 1),
         );
-        dateTo = formatDateToYYYYMMDD(
-          new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        dateTo = formatDateToISO(
+          new Date(today.getFullYear(), today.getMonth() + 1, 0),
         );
         filterText = "เดือนนี้";
         break;
       case "year":
-        dateFrom = formatDateToYYYYMMDD(new Date(today.getFullYear(), 0, 1));
-        dateTo = formatDateToYYYYMMDD(new Date(today.getFullYear(), 11, 31));
+        dateFrom = formatDateToISO(new Date(today.getFullYear(), 0, 1));
+        dateTo = formatDateToISO(new Date(today.getFullYear(), 11, 31));
         filterText = "ปีนี้";
         break;
     }
@@ -667,24 +661,20 @@
       return;
     }
 
-    const filterText = `${formatDateToThaiShort(
-      new Date(dateFrom)
-    )} - ${formatDateToThaiShort(new Date(dateTo))}`;
-    document.getElementById("currentRefundFilterText").textContent = filterText;
+    document.getElementById("currentRefundFilterText").textContent =
+      `${formatDate(dateFrom)} - ${formatDate(dateTo)}`;
 
     loadRefunds(dateFrom, dateTo);
   }
 
   /**
-   * Modal and Detail Functions
+   * Modal and Detail
    */
   function viewRefundById(id) {
     const refund = allRefunds.find((r) => r.refundId === id);
-    if (refund) {
-      viewRefundDetail(refund);
-    } else {
-      showToast("ไม่พบข้อมูลการคืนเงิน", "error");
-    }
+    if (!refund) return showToast("ไม่พบข้อมูลการคืนเงิน", "error");
+
+    viewRefundDetail(refund);
   }
 
   function viewRefundDetail(refund) {
@@ -693,9 +683,7 @@
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex items-center justify-between">
             <div>
                <p class="text-sm text-gray-500 font-medium">ยอดเงินที่คืนแล้ว</p>
-               <h2 class="text-3xl font-extrabold text-gray-900 mt-1">${Number(
-                 refund.refundAmount
-               ).toLocaleString()} <span class="text-lg text-gray-500 font-medium">THB</span></h2>
+               <h2 class="text-3xl font-extrabold text-gray-900 mt-1">${Number(refund.refundAmount).toLocaleString()} <span class="text-lg text-gray-500 font-medium">THB</span></h2>
             </div>
             <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -707,21 +695,15 @@
                 <div class="bg-gray-50 rounded-lg p-4 space-y-3">
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">รหัสการจอง</span>
-                       <span class="text-sm font-medium text-gray-900 ">${
-                         refund.bookingId
-                       }</span>
+                       <span class="text-sm font-medium text-gray-900 ">${refund.bookingId}</span>
                    </div>
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">รหัสการคืน</span>
-                      <span class="text-sm font-medium text-gray-900 ">${
-                        refund.refundId
-                      }</span>
+                      <span class="text-sm font-medium text-gray-900 ">${refund.refundId}</span>
                    </div>
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">ทำรายการโดย</span>
-                      <span class="text-sm font-medium text-gray-900">${
-                        refund.createdBy
-                      }</span>
+                      <span class="text-sm font-medium text-gray-900">${refund.createdBy}</span>
                    </div>
                 </div>
             </div>
@@ -733,15 +715,9 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                      </div>
                      <div>
-                        <p class="text-xs text-blue-600 font-bold uppercase mb-0.5">${
-                          refund.bankName
-                        }</p>
-                        <p class="text-base font-bold text-gray-900 tracking-wide">${formatBankAccount(
-                          refund.accountNumber
-                        )}</p>
-                        <p class="text-sm text-gray-600 mt-1">${
-                          refund.customerName
-                        }</p>
+                        <p class="text-xs text-blue-600 font-bold uppercase mb-0.5">${refund.bankName}</p>
+                        <p class="text-base font-bold text-gray-900 tracking-wide">${formatBankAccount(refund.accountNumber)}</p>
+                        <p class="text-sm text-gray-600 mt-1">${refund.customerName}</p>
                      </div>
                   </div>
                </div>
@@ -749,61 +725,46 @@
         </div>
         ${
           refund.note
-            ? `<div><h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">หมายเหตุ</h4><div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2"><p>${refund.note}</p></div></div>`
+            ? `
+        <div>
+            <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">หมายเหตุ</h4>
+
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800 flex items-start gap-2">
+                 <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                 <p>${refund.note}</p>
+            </div>
+        </div>`
             : ""
         }
-        ${
-          refund.slipUrl
-            ? `<div><h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">หลักฐานการโอน</h4><div class="border-2 border-dashed border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-red-200 hover:bg-red-50 transition-colors group cursor-pointer" onclick="window.open('${refund.slipUrl}', '_blank')"><div class="flex items-center gap-3"><div class="bg-red-100 text-red-600 p-2 rounded-lg"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><div><p class="text-sm font-medium text-gray-900 group-hover:text-red-700">สลิปการโอนเงินคืน</p><p class="text-xs text-gray-500">คลิกเพื่อดูรูปภาพขยาย</p></div></div><svg class="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></div></div>`
-            : ""
-        }
+        ${refund.slipUrl ? `<div><h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">หลักฐานการโอน</h4><div class="border-2 border-dashed border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-red-200 hover:bg-red-50 transition-colors group cursor-pointer" onclick="window.open('${refund.slipUrl}', '_blank')"><div class="flex items-center gap-3"><div class="bg-red-100 text-red-600 p-2 rounded-lg"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><div><p class="text-sm font-medium text-gray-900 group-hover:text-red-700">สลิปการโอนเงินคืน</p><p class="text-xs text-gray-500">คลิกเพื่อดูรูปภาพขยาย</p></div></div><svg class="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></div></div>` : ""}
       </div>
     `;
 
     document.getElementById("viewRefundSubtitle").textContent = refund.refundId;
-    document.getElementById("viewRefundDate").textContent = refund.createdAt
-      ? refund.createdAt.split(" ")[0]
-      : "";
+    document.getElementById("viewRefundDate").textContent = formatDate(
+      refund.createdAt,
+    );
     document.getElementById("viewRefundContent").innerHTML = content;
 
-    const modal = document.getElementById("viewRefundModal");
-    const modalContent = document.getElementById("viewRefundModalContent");
-    modal.classList.remove("hidden");
-    modal.classList.add("modal-show");
-    setTimeout(() => {
-      modalContent.classList.add("modal-content-show");
-    }, 10);
+    openModal("viewRefundModal", "viewRefundModalContent");
   }
 
   function closeViewRefundModal() {
-    const modal = document.getElementById("viewRefundModal");
-    const modalContent = document.getElementById("viewRefundModalContent");
-    modal.classList.add("modal-hide");
-    modalContent.classList.add("modal-content-hide");
-    setTimeout(() => {
-      modal.classList.add("hidden");
-      modal.classList.remove("modal-show", "modal-hide");
-      modalContent.classList.remove("modal-content-show", "modal-content-hide");
-    }, 300);
+    closeModal("viewRefundModal", "viewRefundModalContent");
   }
 
   /**
-   * Utilities
+   * Helpers
    */
-  function showRefundLoading() {
-    const tbody = document.getElementById("refundTableBody");
-    const gridBody = document.getElementById("refundGridBody");
-    const loadingHtml = `<tr><td colspan="7" class="px-6 py-12 text-center"><div class="flex flex-col items-center justify-center space-y-3"><div class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div><p class="text-gray-400 text-sm font-medium animate-pulse">กำลังดึงข้อมูลการคืนเงิน...</p></div></td></tr>`;
-    if (tbody) tbody.innerHTML = loadingHtml;
-    if (gridBody)
-      gridBody.innerHTML = `<div class="col-span-full py-12 text-center"><div class="flex flex-col items-center justify-center space-y-3"><div class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div><p class="text-gray-400 text-sm font-medium animate-pulse">กำลังดึงข้อมูลการคืนเงิน...</p></div></div>`;
-  }
-
-  function hideRefundLoading() {}
-
   function onRefundError(error) {
     console.error("Error:", error);
     showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+  }
+
+  function renderEmptyState(msg) {
+    const tbody = document.getElementById("refundTableBody");
+    if (tbody)
+      tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500 font-bold">${msg}</td></tr>`;
   }
 
   function formatBankAccount(accNum) {
@@ -811,19 +772,6 @@
     return accNum.replace(/(\d{3})(\d{1,6})(\d{1})/, "$1-$2-$3");
   }
 
-  function formatDateToYYYYMMDD(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  function formatDateToThaiShort(date) {
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-  }
-
   // Export
-  if (typeof window.loadRefundPage === "undefined") {
-    window.loadRefundPage = loadRefundPage;
-  }
+  window.loadRefundPage = loadRefundPage;
 </script>

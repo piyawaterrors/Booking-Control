@@ -310,33 +310,75 @@
 
 <script>
   // Global state
-  let currentReportFilter = {
+  var currentReportFilter = {
     type: "month",
     startDate: null,
     endDate: null,
   };
-
   window.dailySalesData = [];
   window.programSummaryData = [];
 
   /**
-   * Format Date for Input (YYYY-MM-DD)
+   * Page Initialization
    */
-  function formatDateForInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
+  function loadReports(startDate, endDate) {
+    const session = getSessionFromStorage();
+    if (!session || !session.sessionToken) {
+      showToast("กรุณาเข้าสู่ระบบใหม่", "error");
+      return;
+    }
 
-  /**
-   * Format Date to Thai (DD/MM/YYYY)
-   */
-  function formatDateThai(date) {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    // Default to this month if parameters are undefined
+    if (startDate === undefined || endDate === undefined) {
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      startDate = formatDateForInput(firstDay);
+      endDate = formatDateForInput(lastDay);
+
+      document.getElementById("reportStartDate").value = startDate;
+      document.getElementById("reportEndDate").value = endDate;
+    }
+
+    showReportLoading(true);
+
+    // Load both reports in parallel
+    Promise.all([
+      new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .getDailySalesReport(session.sessionToken, startDate, endDate);
+      }),
+      new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .getProgramSummaryReport(session.sessionToken, startDate, endDate);
+      }),
+    ])
+      .then(([dailySalesResponse, programSummaryResponse]) => {
+        showReportLoading(false);
+
+        if (dailySalesResponse.success) {
+          window.dailySalesData = dailySalesResponse.data.dailySales || [];
+          sortAndRenderDailySales();
+        } else {
+          showToast(dailySalesResponse.message, "error");
+        }
+
+        if (programSummaryResponse.success) {
+          window.programSummaryData =
+            programSummaryResponse.data.programSummary || [];
+          sortAndRenderProgramSummary();
+        } else {
+          showToast(programSummaryResponse.message, "error");
+        }
+      })
+      .catch((error) => {
+        showToast("เกิดข้อผิดพลาด: " + error.message, "error");
+        showReportLoading(false);
+      });
   }
 
   /**
@@ -344,45 +386,39 @@
    */
   function setReportFilter(type) {
     const today = new Date();
-    let startDate, endDate;
+    let startDate, endDate, filterText;
 
     switch (type) {
       case "all":
         startDate = "";
         endDate = "";
-        document.getElementById("reportFilterText").textContent = "ทั้งหมด";
+        filterText = "ทั้งหมด";
         break;
-
       case "today":
         startDate = endDate = formatDateForInput(today);
-        document.getElementById("reportFilterText").textContent = "วันนี้";
+        filterText = "วันนี้";
         break;
-
       case "month":
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         startDate = formatDateForInput(firstDay);
         endDate = formatDateForInput(lastDay);
-        document.getElementById("reportFilterText").textContent = "เดือนนี้";
+        filterText = "เดือนนี้";
         break;
-
       case "year":
         const yearStart = new Date(today.getFullYear(), 0, 1);
         const yearEnd = new Date(today.getFullYear(), 11, 31);
         startDate = formatDateForInput(yearStart);
         endDate = formatDateForInput(yearEnd);
-        document.getElementById("reportFilterText").textContent = "ปีนี้";
+        filterText = "ปีนี้";
         break;
     }
 
-    // Update input fields
     document.getElementById("reportStartDate").value = startDate;
     document.getElementById("reportEndDate").value = endDate;
+    document.getElementById("reportFilterText").textContent = filterText;
 
-    // Update filter state
     currentReportFilter = { type, startDate, endDate };
-
-    // Reload reports
     loadReports(startDate, endDate);
   }
 
@@ -399,262 +435,93 @@
     }
 
     if (new Date(startDate) > new Date(endDate)) {
-      showToast("วันที่เริ่มต้นต้องน้อยกว่าหรือเท่ากับวันที่สิ้นสุด", "error");
+      showToast("วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด", "error");
       return;
     }
 
-    // Update filter display
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    document.getElementById("reportFilterText").textContent = `${formatDateThai(
-      start
-    )} - ${formatDateThai(end)}`;
+    document.getElementById("reportFilterText").textContent = `${formatDate(
+      startDate,
+    )} - ${formatDate(endDate)}`;
 
-    // Update filter state
     currentReportFilter = { type: "custom", startDate, endDate };
-
-    // Reload reports
     loadReports(startDate, endDate);
   }
 
   /**
-   * Load Reports Data
+   * Sort and Render Functions
    */
-  function loadReports(startDate, endDate) {
-    const session = getSessionFromStorage();
-
-    if (!session || !session.sessionToken) {
-      showToast("กรุณาเข้าสู่ระบบใหม่", "error");
-      return;
-    }
-
-    // Initialize date inputs if not already set
-    const startDateEl = document.getElementById("reportStartDate");
-    const endDateEl = document.getElementById("reportEndDate");
-
-    if (startDateEl && endDateEl && !startDateEl.value && !endDateEl.value) {
-      const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      startDateEl.value = formatDateForInput(firstDay);
-      endDateEl.value = formatDateForInput(lastDay);
-    }
-
-    // Default to this month if parameters are undefined (e.g. initial load)
-    if (startDate === undefined || endDate === undefined) {
-      const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      startDate = formatDateForInput(firstDay);
-      endDate = formatDateForInput(lastDay);
-      if (startDateEl) startDateEl.value = startDate;
-      if (endDateEl) endDateEl.value = endDate;
-    }
-
-    // Show loading
-    showReportLoading();
-
-    // Load both reports in parallel and wait for both to complete
-    Promise.all([
-      new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .getDailySalesReport(session.sessionToken, startDate, endDate);
-      }),
-      new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .getProgramSummaryReport(session.sessionToken, startDate, endDate);
-      }),
-    ])
-      .then(([dailySalesResponse, programSummaryResponse]) => {
-        // Both reports loaded successfully, now render them together
-        if (dailySalesResponse.success) {
-          window.dailySalesData = dailySalesResponse.data.dailySales || [];
-          sortAndRenderDailySales();
-        } else {
-          showToast(
-            dailySalesResponse.message || "ไม่สามารถโหลดข้อมูลยอดขายได้",
-            "error"
-          );
-        }
-
-        if (programSummaryResponse.success) {
-          window.programSummaryData =
-            programSummaryResponse.data.programSummary || [];
-          sortAndRenderProgramSummary();
-        } else {
-          showToast(
-            programSummaryResponse.message || "ไม่สามารถโหลดข้อมูลโปรแกรมได้",
-            "error"
-          );
-        }
-      })
-      .catch((error) => {
-        showToast("เกิดข้อผิดพลาด: " + error.message, "error");
-        hideReportLoading();
-      });
-  }
-
-  /**
-   * Show Loading State
-   */
-  function showReportLoading() {
-    document.getElementById("dailySalesLoading").classList.remove("hidden");
-    document.getElementById("dailySalesContainer").classList.add("hidden");
-
-    document.getElementById("programSummaryLoading").classList.remove("hidden");
-    document.getElementById("programSummaryContainer").classList.add("hidden");
-  }
-
-  /**
-   * Sort and Render Daily Sales
-   */
-  window.sortAndRenderDailySales = function () {
+  function sortAndRenderDailySales() {
     const sortBy = document.getElementById("sortDailySales").value;
-    const rawData = window.dailySalesData || [];
-
-    // Clone and Sort
-    const data = [...rawData].sort((a, b) => {
-      if (sortBy === "sales") {
-        const valA = Number(a.totalSales) || 0;
-        const valB = Number(b.totalSales) || 0;
-        if (valB !== valA) return valB - valA;
-      } else {
-        const valA = Number(a.bookingCount) || 0;
-        const valB = Number(b.bookingCount) || 0;
-        if (valB !== valA) return valB - valA;
-      }
-      // ลำดับรอง: เรียงตามชื่อสถานที่
-      return (a.location || "").localeCompare(b.location || "");
+    const data = [...(window.dailySalesData || [])].sort((a, b) => {
+      const valA = sortBy === "sales" ? a.totalSales || 0 : a.bookingCount || 0;
+      const valB = sortBy === "sales" ? b.totalSales || 0 : b.bookingCount || 0;
+      return valB !== valA
+        ? valB - valA
+        : (a.location || "").localeCompare(b.location || "");
     });
-
-    console.log("Sort Daily Sales by:", sortBy, "Result:", data);
     renderDailySales(data);
-  };
+  }
 
-  /**
-   * Sort and Render Program Summary
-   */
-  window.sortAndRenderProgramSummary = function () {
+  function sortAndRenderProgramSummary() {
     const sortBy = document.getElementById("sortProgramSummary").value;
-    const rawData = window.programSummaryData || [];
-
-    // Clone and Sort
-    const data = [...rawData].sort((a, b) => {
-      if (sortBy === "sales") {
-        const valA = Number(a.totalRevenue) || 0;
-        const valB = Number(b.totalRevenue) || 0;
-        if (valB !== valA) return valB - valA;
-      } else {
-        const valA = Number(a.bookingCount) || 0;
-        const valB = Number(b.bookingCount) || 0;
-        if (valB !== valA) return valB - valA;
-      }
-      // ลำดับรอง: เรียงตามชื่อโปรแกรม
-      return (a.program || "").localeCompare(b.program || "");
+    const data = [...(window.programSummaryData || [])].sort((a, b) => {
+      const valA =
+        sortBy === "sales" ? a.totalRevenue || 0 : a.bookingCount || 0;
+      const valB =
+        sortBy === "sales" ? b.totalRevenue || 0 : b.bookingCount || 0;
+      return valB !== valA
+        ? valB - valA
+        : (a.program || "").localeCompare(b.program || "");
     });
-
-    console.log("Sort Program Summary by:", sortBy, "Result:", data);
     renderProgramSummary(data);
-  };
+  }
 
   /**
-   * Export Daily Sales to Excel (CSV)
+   * UI Rendering
    */
-  window.exportDailySalesToExcel = function () {
-    const data = window.dailySalesData || [];
-    if (data.length === 0) {
-      showToast("ไม่มีข้อมูลสำหรับส่งออก", "warning");
-      return;
+  function showReportLoading(isLoading) {
+    const dailyLoading = document.getElementById("dailySalesLoading");
+    const dailyContainer = document.getElementById("dailySalesContainer");
+    const progLoading = document.getElementById("programSummaryLoading");
+    const progContainer = document.getElementById("programSummaryContainer");
+
+    if (isLoading) {
+      dailyLoading.classList.remove("hidden");
+      dailyContainer.classList.add("hidden");
+      progLoading.classList.remove("hidden");
+      progContainer.classList.add("hidden");
+    } else {
+      dailyLoading.classList.add("hidden");
+      progLoading.classList.add("hidden");
     }
+  }
 
-    // 1. Prepare CSV Header (BOM for Thai support in Excel)
-    let csvContent = "\uFEFF";
-    csvContent += "สถานที่,ผู้ใหญ่,เด็ก,รวมทั้งหมด,รายการจอง,ยอดขาย\n";
-
-    // 2. Prepare Data Rows
-    data.forEach((item) => {
-      const location = (item.location || "ไม่ระบุ").replace(/,/g, " ");
-      const adults = item.totalAdults || 0;
-      const children = item.totalChildren || 0;
-      const total = adults + children;
-      const count = item.bookingCount || 0;
-      const sales = item.totalSales || 0;
-
-      csvContent += `${location},${adults},${children},${total},${count},${sales}\n`;
-    });
-
-    // 3. Create Download Link
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    // Get filter text for filename
-    const filterText =
-      document.getElementById("reportFilterText").textContent || "report";
-    const filename = `รายงานยอดขายตามสถานที่_${filterText.replace(
-      /[\/\\\s-]/g,
-      "_"
-    )}.csv`;
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showToast("ส่งออกข้อมูลเรียบร้อยแล้ว", "success");
-  };
-
-  /**
-   * Render Daily Sales by Location
-   */
   function renderDailySales(data) {
     const container = document.getElementById("dailySalesContainer");
-    const loading = document.getElementById("dailySalesLoading");
-
-    loading.classList.add("hidden");
     container.classList.remove("hidden");
 
     if (!data || data.length === 0) {
-      container.innerHTML = `
-        <div class="text-center py-8 text-gray-400">
-          <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-          </svg>
-          <p class="text-sm">ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
-        </div>
-      `;
+      container.innerHTML = `<div class="text-center py-8 text-gray-400"><p class="text-sm">ไม่มีข้อมูลในช่วงเวลาที่เลือก</p></div>`;
       return;
     }
 
-    // Calculate total
     const total = data.reduce((sum, item) => sum + item.totalSales, 0);
 
     container.innerHTML = `
-      <!-- Total Summary -->
       <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
         <div class="text-sm text-gray-600 mb-1">ยอดขายรวมทั้งหมด</div>
         <div class="text-3xl font-bold text-blue-600">฿${total.toLocaleString()}</div>
       </div>
-
-      <!-- Location List -->
       ${data
         .map((item, index) => {
           const percentage = total > 0 ? (item.totalSales / total) * 100 : 0;
-          const colors = [
+          const color = [
             "from-blue-500 to-cyan-600",
             "from-purple-500 to-pink-600",
             "from-green-500 to-emerald-600",
             "from-orange-500 to-red-600",
             "from-indigo-500 to-purple-600",
-          ];
-          const color = colors[index % colors.length];
-
+          ][index % 5];
           return `
           <div class="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-all">
             <div class="flex items-center justify-between mb-3">
@@ -662,42 +529,71 @@
                 <div class="font-bold text-gray-800 mb-1">${
                   item.location || "ไม่ระบุ"
                 }</div>
-                <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gray-500">
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                    ผู้ใหญ่ ${item.totalAdults} คน
-                  </span>
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                    เด็ก ${item.totalChildren} คน
-                  </span>
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                    ทั้งหมด ${item.totalAdults + item.totalChildren} คน
-                  </span>
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z"></path>
-                    </svg>
-                    ${item.bookingCount} รายการ
-                  </span>
+                <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-[10px] text-gray-500">
+                  <span>ผู้ใหญ่ ${item.totalAdults}</span>
+                  <span>เด็ก ${item.totalChildren}</span>
+                  <span>รายการจอง ${item.bookingCount}</span>
                 </div>
               </div>
               <div class="text-right ml-4">
                 <div class="text-lg font-bold text-gray-900">฿${item.totalSales.toLocaleString()}</div>
-                <div class="text-xs text-gray-500">${percentage.toFixed(
-                  1
+                <div class="text-[10px] text-gray-500">${percentage.toFixed(
+                  1,
                 )}%</div>
               </div>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div class="bg-gradient-to-r ${color} h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5">
+              <div class="bg-gradient-to-r ${color} h-1.5 rounded-full" style="width: ${percentage}%"></div>
+            </div>
+          </div>
+        `;
+        })
+        .join("")}
+    `;
+  }
+
+  function renderProgramSummary(data) {
+    const container = document.getElementById("programSummaryContainer");
+    container.classList.remove("hidden");
+
+    if (!data || data.length === 0) {
+      container.innerHTML = `<div class="text-center py-8 text-gray-400"><p class="text-sm">ไม่มีข้อมูลในช่วงเวลาที่เลือก</p></div>`;
+      return;
+    }
+
+    const totalRevenue = data.reduce((sum, item) => sum + item.totalRevenue, 0);
+
+    container.innerHTML = `
+      <div class="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4 mb-4">
+        <div class="text-sm text-gray-600 mb-1">รายได้รวม</div>
+        <div class="text-3xl font-bold text-purple-600">฿${totalRevenue.toLocaleString()}</div>
+      </div>
+      ${data
+        .map((item, index) => {
+          const percentage =
+            totalRevenue > 0 ? (item.totalRevenue / totalRevenue) * 100 : 0;
+          return `
+          <div class="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex-1">
+                <div class="font-bold text-gray-800 mb-1">${
+                  item.program || "ไม่ระบุ"
+                }</div>
+                <div class="flex items-center gap-4 text-[10px] text-gray-500">
+                  <span>ผู้ใหญ่ ${item.totalAdults}</span>
+                  <span>เด็ก ${item.totalChildren}</span>
+                  <span>จอง ${item.bookingCount}</span>
+                </div>
+              </div>
+              <div class="text-right ml-4">
+                <div class="text-lg font-bold text-gray-900">฿${item.totalRevenue.toLocaleString()}</div>
+                <div class="text-[10px] text-gray-500">${percentage.toFixed(
+                  1,
+                )}%</div>
+              </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5">
+              <div class="bg-gradient-to-r from-purple-500 to-pink-600 h-1.5 rounded-full" style="width: ${percentage}%"></div>
             </div>
           </div>
         `;
@@ -707,104 +603,44 @@
   }
 
   /**
-   * Render Program Summary
+   * Export Functions
    */
-  function renderProgramSummary(data) {
-    const container = document.getElementById("programSummaryContainer");
-    const loading = document.getElementById("programSummaryLoading");
+  function exportDailySalesToExcel() {
+    const data = window.dailySalesData || [];
+    if (data.length === 0)
+      return showToast("ไม่มีข้อมูลสำหรับส่งออก", "warning");
 
-    loading.classList.add("hidden");
-    container.classList.remove("hidden");
+    let csvContent = "\uFEFF";
+    csvContent += "สถานที่,ผู้ใหญ่,เด็ก,รวมทั้งหมด,รายการจอง,ยอดขาย\n";
 
-    if (!data || data.length === 0) {
-      container.innerHTML = `
-        <div class="text-center py-8 text-gray-400">
-          <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-          </svg>
-          <p class="text-sm">ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
-        </div>
-      `;
-      return;
-    }
+    data.forEach((item) => {
+      const location = (item.location || "ไม่ระบุ").replace(/,/g, " ");
+      csvContent += `${location},${item.totalAdults},${item.totalChildren},${
+        item.totalAdults + item.totalChildren
+      },${item.bookingCount},${item.totalSales}\n`;
+    });
 
-    // Calculate totals
-    const totalBookings = data.reduce(
-      (sum, item) => sum + item.bookingCount,
-      0
-    );
-    const totalRevenue = data.reduce((sum, item) => sum + item.totalRevenue, 0);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const filterText =
+      document.getElementById("reportFilterText").textContent || "report";
 
-    container.innerHTML = `
-      <!-- Total Summary -->
-      <div class="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4 mb-4">
-        <div class="text-sm text-gray-600 mb-1">รายได้รวม</div>
-        <div class="text-3xl font-bold text-purple-600">฿${totalRevenue.toLocaleString()}</div>
-      </div>
-
-      <!-- Program List -->
-      ${data
-        .map((item, index) => {
-          const percentage =
-            totalRevenue > 0 ? (item.totalRevenue / totalRevenue) * 100 : 0;
-
-          return `
-          <div class="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-all">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex-1">
-                <div class="font-bold text-gray-800 mb-1">${
-                  item.program || "ไม่ระบุ"
-                }</div>
-                <div class="flex items-center gap-4 text-xs text-gray-500">
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                    ผู้ใหญ่ ${item.totalAdults} คน
-                  </span>
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                    เด็ก ${item.totalChildren} คน
-                  </span>
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                    รวมทั้งหมด ${item.totalAdults + item.totalChildren} คน
-                  </span>
-                  <span class="flex items-center">
-                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z"></path>
-                    </svg>
-                    ${item.bookingCount} รายการ
-                  </span>
-                </div>
-              </div>
-              <div class="text-right ml-4">
-                <div class="text-lg font-bold text-gray-900">฿${item.totalRevenue.toLocaleString()}</div>
-                <div class="text-xs text-gray-500">${percentage.toFixed(
-                  1
-                )}%</div>
-              </div>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div class="bg-gradient-to-r from-purple-500 to-pink-600 h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
-            </div>
-          </div>
-        `;
-        })
-        .join("")}
-    `;
+    link.href = url;
+    link.download = `รายงานยอดขายตามสถานที่_${filterText.replace(
+      /[\/\\\s-]/g,
+      "_",
+    )}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("ส่งออกข้อมูลเรียบร้อยแล้ว", "success");
   }
 
-  // Export to window for global access (especially for event handlers)
+  // Export to window
   window.loadReports = loadReports;
   window.setReportFilter = setReportFilter;
   window.applyCustomReportFilter = applyCustomReportFilter;
   window.sortAndRenderDailySales = sortAndRenderDailySales;
   window.sortAndRenderProgramSummary = sortAndRenderProgramSummary;
-  window.renderDailySales = renderDailySales;
-  window.renderProgramSummary = renderProgramSummary;
+  window.exportDailySalesToExcel = exportDailySalesToExcel;
 </script>

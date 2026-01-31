@@ -22,7 +22,11 @@
           src="https://img5.pic.in.th/file/secure-sv1/booking_control_icon.png"
           alt="Booking Control Logo"
           class="w-16 h-16 object-contain transform hover:rotate-6 transition-transform duration-300"
-          onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2907/2907150.png';"
+          onerror="
+            this.onerror = null;
+            this.src =
+              'https://cdn-icons-png.flaticon.com/512/2907/2907150.png';
+          "
         />
       </div>
       <h1 class="text-4xl font-bold text-white mb-2">Booking Control</h1>
@@ -142,7 +146,10 @@
           </label>
           <a
             href="#"
-            onclick="showToast('กรุณาติดต่อ Admin', 'warning'); return false;"
+            onclick="
+              showToast('กรุณาติดต่อ Admin', 'warning');
+              return false;
+            "
             class="text-sm font-medium text-purple-600 hover:text-purple-700"
           >
             ลืมรหัสผ่าน?
@@ -346,97 +353,6 @@
 
 <script>
   /**
-   * Session Management Functions
-   */
-  function saveSessionToStorage(sessionData) {
-    try {
-      localStorage.setItem("bookingSession", JSON.stringify(sessionData));
-    } catch (error) {
-      console.error("Error saving session:", error);
-    }
-  }
-
-  function getSessionFromStorage() {
-    try {
-      const session = localStorage.getItem("bookingSession");
-      return session ? JSON.parse(session) : null;
-    } catch (error) {
-      console.error("Error reading session:", error);
-      return null;
-    }
-  }
-
-  function clearSessionStorage() {
-    try {
-      localStorage.removeItem("bookingSession");
-    } catch (error) {
-      console.error("Error clearing session:", error);
-    }
-  }
-
-  function showToast(message, type = "info", duration = 4000) {
-    // 1. Ensure Container exists
-    let container = document.querySelector(".toast-container");
-    if (!container) {
-      container = document.createElement("div");
-      container.className = "toast-container";
-      document.body.appendChild(container);
-    }
-
-    // 2. Define Icons and Titles
-    const configs = {
-      success: {
-        title: "สำเร็จ",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
-      },
-      error: {
-        title: "เกิดข้อผิดพลาด",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>',
-      },
-      warning: {
-        title: "แจ้งเตือน",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>',
-      },
-      info: {
-        title: "ข้อมูล",
-        icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
-      },
-    };
-
-    const config = configs[type] || configs.info;
-
-    // 3. Create Toast Element
-    const toast = document.createElement("div");
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-      <div class="toast-icon">${config.icon}</div>
-      <div class="toast-content">
-        <div class="toast-title">${config.title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <div class="toast-progress">
-        <div class="toast-progress-bar" style="animation: toastProgress ${duration}ms linear forwards"></div>
-      </div>
-    `;
-
-    // 4. Show and Auto-remove
-    container.appendChild(toast);
-
-    const removeToast = () => {
-      toast.classList.add("toast-fade-out");
-      setTimeout(() => toast.remove(), 300);
-    };
-
-    const timeoutId = setTimeout(removeToast, duration);
-
-    // Click to dismiss
-    toast.onclick = () => {
-      clearTimeout(timeoutId);
-      removeToast();
-    };
-  }
-
-  /**
    * Toggle Password Visibility
    */
   function togglePassword() {
@@ -467,7 +383,7 @@
         JSON.stringify({
           username: username,
           timestamp: new Date().getTime(),
-        })
+        }),
       );
     } catch (error) {
       console.error("Error saving remember me:", error);
@@ -558,13 +474,24 @@
           // Show success message
           showToast(
             `ยินดีต้อนรับ ${response.data.fullName || response.data.username}!`,
-            "success"
+            "success",
           );
 
-          // Redirect to main page
-          setTimeout(() => {
-            loadPage("main");
-          }, 1500);
+          // Set and save default page based on role directly at login
+          let defaultPage = "booking";
+          const role = response.data.role;
+
+          if (role === "Admin" || role === "Cost" || role === "Owner") {
+            defaultPage = "dashboard";
+          } else if (role === "AR_AP") {
+            defaultPage = "payment-approval";
+          } else if (role === "OP") {
+            defaultPage = "booking";
+          }
+
+          localStorage.setItem("currentPage", defaultPage);
+
+          loadPage("main");
         } else {
           // Show error
           showToast(response.message || "เข้าสู่ระบบไม่สำเร็จ", "error");

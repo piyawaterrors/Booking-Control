@@ -8,8 +8,14 @@
   }
 
   body {
-    font-family: "Noto Sans Thai", "Noto Sans", -apple-system,
-      BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family:
+      "Noto Sans Thai",
+      "Noto Sans",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
     margin: 0;
     padding: 0;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -540,21 +546,26 @@
   }
 
   .shadow {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px 0 rgba(0, 0, 0, 0.06);
   }
 
   .shadow-md {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
       0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
   .shadow-lg {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
       0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
   .shadow-xl {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
       0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 
@@ -576,5 +587,56 @@
 
   .transition-slow {
     transition: all 0.5s ease;
+  }
+  /* ========================================
+     ROLE-BASED VISIBILITY (ZERO-FLICKER)
+     ======================================== */
+
+  /* Default for Owner/Admin - Show all */
+  body.role-Owner .sidebar-item,
+  body.role-Admin .sidebar-item {
+    display: flex !important;
+  }
+
+  /* Role: OP (Operator) - Only Booking */
+  body.role-OP .sidebar-item {
+    display: none !important;
+  }
+  body.role-OP .sidebar-item[data-page="booking"] {
+    display: flex !important;
+  }
+
+  /* Role: AR_AP / Cost - Restricted Set */
+  body.role-AR_AP .sidebar-item,
+  body.role-Cost .sidebar-item {
+    display: none !important;
+  }
+
+  /* Common allowed for AR_AP & Cost */
+  body.role-AR_AP .sidebar-item[data-page="booking"],
+  body.role-AR_AP .sidebar-item[data-page="payment-approval"],
+  body.role-AR_AP .sidebar-item[data-page="refund"],
+  body.role-AR_AP .sidebar-item[data-page="programs"],
+  body.role-AR_AP .sidebar-item[data-page="locations"],
+  body.role-Cost .sidebar-item[data-page="booking"],
+  body.role-Cost .sidebar-item[data-page="payment-approval"],
+  body.role-Cost .sidebar-item[data-page="refund"],
+  body.role-Cost .sidebar-item[data-page="programs"],
+  body.role-Cost .sidebar-item[data-page="locations"] {
+    display: flex !important;
+  }
+
+  /* Extra for Cost */
+  body.role-Cost .sidebar-item[data-page="dashboard"],
+  body.role-Cost .sidebar-item[data-page="reports"] {
+    display: flex !important;
+  }
+
+  /* Page Container Logic */
+  body[class*="role-"] .page-container {
+    display: none !important;
+  }
+  body[class*="role-"] .page-container.active {
+    display: block !important;
   }
 </style>
