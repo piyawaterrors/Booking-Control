@@ -59,40 +59,43 @@
 | I       | วันที่สร้าง       | DateTime | Created At                            |
 | J       | วันที่แก้ไขล่าสุด | DateTime | Updated At                            |
 
-### 2. ตาราง Booking_Raw (การจอง) - [30 คอลัมน์]
+### 2. ตาราง Booking_Raw (การจอง) - [33 คอลัมน์]
 
-| คอลัมน์ | ชื่อฟิลด์           | ประเภท   | คำอธิบาย                     |
-| :------ | :------------------ | :------- | :--------------------------- |
-| A       | รหัสการจอง          | String   | BK-YYYYMMDD-XXX              |
-| B       | วันที่จอง           | Date     | dd/MM/yyyy                   |
-| C       | วันที่เดินทาง       | Date     | dd/MM/yyyy                   |
-| D       | ชื่อสถานที่         | String   | Location Name                |
-| E       | รหัสโปรแกรม         | String   | Program ID                   |
-| F       | ผู้ใหญ่ (คน)        | Number   |                              |
-| G       | เด็ก (คน)           | Number   |                              |
-| H       | ราคาผู้ใหญ่         | Number   |                              |
-| I       | ราคาเด็ก            | Number   |                              |
-| J       | ค่าใช้จ่ายเพิ่มเติม | Number   | Additional Cost              |
-| K       | ส่วนลด (บาท)        | Number   |                              |
-| L       | vat 7%              | Number   | VAT Amount                   |
-| M       | vc no.              | String   |                              |
-| N       | เวลารับลูกค้า       | String   | HH:mm                        |
-| O       | ชื่อโรงแรม          | String   |                              |
-| P       | เลขห้อง             | String   |                              |
-| Q       | หมายเหตุ (1)        | String   | Pickup note etc.             |
-| R       | สถานะ               | String   | Confirm / Completed / Cancel |
-| S       | เงินโอน             | Number   |                              |
-| T       | เงินสด              | Number   |                              |
-| U       | Cash on tour        | Number   |                              |
-| V       | Cash on tour note   | String   |                              |
-| W       | URL สลิป            | String   | Drive URL                    |
-| X       | Agent               | String   |                              |
-| Y       | หมายเหตุ (2)        | String   | Internal note                |
-| Z       | ยอดขายต่อรายการ     | Number   | Total Sales Amount           |
-| AA      | ผู้สร้าง            | String   | Username                     |
-| AB      | วันที่สร้าง         | DateTime |                              |
-| AC      | ผู้แก้ไขล่าสุด      | String   | Username                     |
-| AD      | วันที่แก้ไขล่าสุด   | DateTime |                              |
+| คอลัมน์ | Index (0-based) | ชื่อฟิลด์           | ประเภท   | คำอธิบาย                     |
+| :------ | :-------------- | :------------------ | :------- | :--------------------------- |
+| A       | 0               | รหัสการจอง          | String   | BK-YYYYMMDD-XXX              |
+| B       | 1               | วันที่จอง           | Date     | dd/MM/yyyy                   |
+| C       | 2               | วันที่เดินทาง       | Date     | dd/MM/yyyy                   |
+| D       | 3               | ชื่อสถานที่         | String   | Location Name                |
+| E       | 4               | รหัสโปรแกรม         | String   | Program ID                   |
+| F       | 5               | ผู้ใหญ่ (คน)        | Number   |                              |
+| G       | 6               | เด็ก (คน)           | Number   |                              |
+| H       | 7               | FOC (คน)            | Number   | (NEW)                        |
+| I       | 8               | ราคาผู้ใหญ่         | Number   |                              |
+| J       | 9               | ราคาเด็ก            | Number   |                              |
+| K       | 10              | ค่าใช้จ่ายเพิ่มเติม | Number   | Additional Cost              |
+| L       | 11              | ส่วนลด (บาท)        | Number   |                              |
+| M       | 12              | vat 7%              | Number   | VAT Amount                   |
+| N       | 13              | vat 7% ใน           | String   | Yes/No (VAT Included) (NEW)  |
+| O       | 14              | ชื่อลูกค้า          | String   | Customer Name                |
+| P       | 15              | vc no.              | String   |                              |
+| Q       | 16              | เวลารับลูกค้า       | String   | HH:mm                        |
+| R       | 17              | ชื่อโรงแรม          | String   |                              |
+| S       | 18              | เลขห้อง             | String   |                              |
+| T       | 19              | หมายเหตุ (1)        | String   | Pickup note etc.             |
+| U       | 20              | สถานะ               | String   | Confirm / Completed / Cancel |
+| V       | 21              | เงินโอน             | Number   |                              |
+| W       | 22              | เงินสด              | Number   |                              |
+| X       | 23              | Cash on tour        | Number   |                              |
+| Y       | 24              | Cash on tour note   | String   |                              |
+| Z       | 25              | URL สลิป            | String   | Drive URL                    |
+| AA      | 26              | Agent               | String   |                              |
+| AB      | 27              | หมายเหตุ (2)        | String   | Internal note                |
+| AC      | 28              | ยอดขายต่อรายการ     | Number   | Total Sales Amount           |
+| AD      | 29              | ผู้สร้าง            | String   | Username                     |
+| AE      | 30              | วันที่สร้าง         | DateTime |                              |
+| AF      | 31              | ผู้แก้ไขล่าสุด      | String   | Username                     |
+| AG      | 32              | วันที่แก้ไขล่าสุด   | DateTime |                              |
 
 ### 3. ตาราง Locations (สถานที่) - [6 คอลัมน์]
 

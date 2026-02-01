@@ -55,7 +55,8 @@
         try {
           const d = new Date(dateStr);
           if (isNaN(d.getTime())) return dateStr;
-          return d.toLocaleDateString("th-TH");
+          // Use en-GB or specify calendar: 'gregory' to avoid +543 year
+          return d.toLocaleDateString("en-GB");
         } catch (e) {
           return dateStr;
         }
@@ -79,8 +80,19 @@
        */
       function formatDateThai(date) {
         if (!date) return "-";
-        const d = new Date(date);
-        if (isNaN(d.getTime())) return date;
+
+        // Handle both Date objects and strings
+        let d;
+        if (date instanceof Date) {
+          d = date;
+        } else if (typeof date === "string") {
+          d = new Date(date);
+        } else {
+          return "-";
+        }
+
+        if (isNaN(d.getTime())) return typeof date === "string" ? date : "-";
+
         const day = String(d.getDate()).padStart(2, "0");
         const month = String(d.getMonth() + 1).padStart(2, "0");
         const year = d.getFullYear();
@@ -257,6 +269,22 @@
             );
         }, 300);
       }
+
+      // Handle Escape key to close modals
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          const openModals = document.querySelectorAll(
+            ".modal-show:not(.hidden)",
+          );
+          openModals.forEach((modal) => {
+            // Find content if it follows the IDContent pattern or use default
+            const contentId = document.getElementById(modal.id + "Content")
+              ? modal.id + "Content"
+              : null;
+            closeModal(modal.id, contentId);
+          });
+        }
+      });
 
       // ========================================
       // PAGE LOADING & NAVIGATION

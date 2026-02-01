@@ -441,18 +441,24 @@
   function convertThaiDateToInputFormat(thaiDate) {
     if (!thaiDate) return "";
 
-    // Check if already in yyyy-MM-dd format
-    if (/^\d{4}-\d{2}-\d{2}$/.test(thaiDate)) {
+    // Check if already in yyyy-MM-dd or yyyy-MM-ddTHH:mm format
+    if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(thaiDate)) {
       return thaiDate;
     }
 
-    // Parse dd/MM/yyyy format
-    const parts = thaiDate.split("/");
+    // Parse dd/MM/yyyy [HH:mm] format
+    const [datePart, timePart] = thaiDate.split(" ");
+    const parts = datePart.split("/");
     if (parts.length === 3) {
       const day = parts[0].padStart(2, "0");
       const month = parts[1].padStart(2, "0");
       const year = parts[2];
-      return `${year}-${month}-${day}`;
+
+      let result = `${year}-${month}-${day}`;
+      if (timePart && /^\d{2}:\d{2}$/.test(timePart)) {
+        result += `T${timePart}`;
+      }
+      return result;
     }
 
     return "";
@@ -814,13 +820,45 @@
   }
 
   function handleFinalLogout() {
-    clearSessionStorage();
-    localStorage.removeItem("currentPage");
-    showToast("ออกจากระบบสำเร็จ", "success");
+    // Get session before clearing
+    const session = getSessionFromStorage();
+    const sessionToken = session ? session.sessionToken : null;
 
-    setTimeout(() => {
-      loadPage("login");
-    }, 500);
+    // Call backend to log logout activity
+    if (sessionToken) {
+      google.script.run
+        .withSuccessHandler(function (response) {
+          // Clear session after logging
+          clearSessionStorage();
+          localStorage.removeItem("currentPage");
+          showToast("ออกจากระบบสำเร็จ", "success");
+
+          setTimeout(() => {
+            loadPage("login");
+          }, 500);
+        })
+        .withFailureHandler(function (error) {
+          // Even if logging fails, still logout
+          console.error("Error logging logout:", error);
+          clearSessionStorage();
+          localStorage.removeItem("currentPage");
+          showToast("ออกจากระบบสำเร็จ", "success");
+
+          setTimeout(() => {
+            loadPage("login");
+          }, 500);
+        })
+        .logoutUser(sessionToken);
+    } else {
+      // No session, just clear and redirect
+      clearSessionStorage();
+      localStorage.removeItem("currentPage");
+      showToast("ออกจากระบบสำเร็จ", "success");
+
+      setTimeout(() => {
+        loadPage("login");
+      }, 500);
+    }
   }
 
   // 1. Initial Quick Load (Pre-navigation)

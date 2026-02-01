@@ -227,15 +227,40 @@
   function createInvoiceHTML(booking, docType) {
     const themeColor = "#7c3aed";
 
-    const adultTotal = (booking.adults || 0) * (booking.adultPrice || 0);
-    const childTotal = (booking.children || 0) * (booking.childPrice || 0);
-    const additionalCost = booking.additionalCost || 0;
+    // คำนวณยอดรวมดิบเพื่อเช็คประเภท VAT
+    const subtotalRaw =
+      (Number(booking.adults) || 0) * (Number(booking.adultPrice) || 0) +
+      (Number(booking.children) || 0) * (Number(booking.childPrice) || 0) +
+      (Number(booking.additionalCost) || 0) -
+      (Number(booking.discount) || 0);
+
+    // เช็คว่าเป็นโหมด "VAT ใน" หรือไม่ (ยอดรวมที่บันทึกไว้ น้อยกว่ายอดคำนวณดิบ)
+    const isVatInclude =
+      Number(booking.vatIn) > 0 &&
+      subtotalRaw - Number(booking.totalAmount) >= 1;
+
+    let adultPrice = Number(booking.adultPrice) || 0;
+    let childPrice = Number(booking.childPrice) || 0;
+    let additionalCost = Number(booking.additionalCost) || 0;
+    let discount = Number(booking.discount) || 0;
+
+    if (isVatInclude && subtotalRaw > 0) {
+      // ถอด VAT 7% ออกจากราคาต่อหน่วยโดยใช้สัดส่วนเพื่อให้ยอดรวมสุทธิเท่ากับจำนวนที่บันทึกไว้พอดี
+      const ratio = Number(booking.totalAmount) / subtotalRaw;
+      adultPrice = adultPrice * ratio;
+      childPrice = childPrice * ratio;
+      additionalCost = additionalCost * ratio;
+      discount = discount * ratio;
+    }
+
+    const adultTotal = (booking.adults || 0) * adultPrice;
+    const childTotal = (booking.children || 0) * childPrice;
     const bahtText = arabicToThaiBaht(booking.totalAmount || 0);
 
     const isReceipt = docType
       ? docType === "Receipt"
       : booking.status === "Completed";
-    const docTitle = isReceipt ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้";
+    const docTitle = isReceipt ? "ใบเสร็จรับเงิน/ใบกำกับภาษี" : "ใบแจ้งหนี้";
     const recipientLabel = isReceipt ? "ผู้รับใบเสร็จ" : "ผู้รับใบแจ้งหนี้";
     const issuerLabel = isReceipt ? "ผู้ออกใบเสร็จ" : "ผู้ออกใบแจ้งหนี้";
 
@@ -249,6 +274,52 @@
       }
       return dateStr;
     };
+
+    let rowIdx = 1;
+    let itemsHtml = "";
+
+    if ((booking.adults || 0) > 0) {
+      itemsHtml += `
+        <tr>
+          <td style="text-align: center;">${rowIdx++}</td>
+          <td>ผู้ใหญ่</td>
+          <td style="text-align: center;">${booking.adults}</td>
+          <td style="text-align: right;">${(adultPrice || 0).toLocaleString(
+            "th-TH",
+            { minimumFractionDigits: 2 },
+          )}</td>
+          <td style="text-align: right;">${adultTotal.toLocaleString("th-TH", {
+            minimumFractionDigits: 2,
+          })}</td>
+        </tr>`;
+    }
+
+    if ((booking.children || 0) > 0) {
+      itemsHtml += `
+        <tr>
+          <td style="text-align: center;">${rowIdx++}</td>
+          <td>เด็ก</td>
+          <td style="text-align: center;">${booking.children}</td>
+          <td style="text-align: right;">${(childPrice || 0).toLocaleString(
+            "th-TH",
+            { minimumFractionDigits: 2 },
+          )}</td>
+          <td style="text-align: right;">${childTotal.toLocaleString("th-TH", {
+            minimumFractionDigits: 2,
+          })}</td>
+        </tr>`;
+    }
+
+    if ((booking.foc || 0) > 0) {
+      itemsHtml += `
+        <tr>
+          <td style="text-align: center;">${rowIdx++}</td>
+          <td>FOC</td>
+          <td style="text-align: center;">${booking.foc}</td>
+          <td style="text-align: right;">0.00</td>
+          <td style="text-align: right;">0.00</td>
+        </tr>`;
+    }
 
     return `
         <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -280,12 +351,13 @@
             font-size: 12px;
             line-height: 1.6;
             text-align: left;
-            margin-top: 100px;
+            margin-top: 110px;
           }
 
           .doc-title {
-            font-size: 32px;
+            font-size: ${isReceipt ? "28px" : "32px"};
             font-weight: 700;
+            height: 50px;
             color: #1f2937;
             text-align: center;
           }
@@ -305,33 +377,45 @@
             border-collapse: collapse;
           }
 
-          .info-item {
-            padding: 5px 0;
+          .info-item td {
+            padding: 4px 0;
+            vertical-align: middle;
           }
 
           .info-label {
             color: #754595;
             padding-right: 15px;
             text-align: left;
-            width: 100px;
+            width: 90px;
           }
 
           .info-value {
             color: #1f2937;
+            font-weight: 500;
           }
 
           table.items {
             width: 100%;
-            margin-top: 10px;
+            margin-top: 15px;
+            border-collapse: collapse;
           }
 
           table.items th {
-            padding: 10px;
+            padding: 12px 10px;
             text-align: left;
             font-size: 12px;
             font-weight: 600;
             color: #374151;
             border-bottom: 2px solid #e5e7eb;
+            vertical-align: middle;
+            line-height: 1.2;
+          }
+
+          table.items td {
+            padding: 12px 10px;
+            vertical-align: middle;
+            line-height: 1.2;
+            border-bottom: 1px solid #f3f4f6;
           }
 
           .summary {
@@ -392,7 +476,7 @@
               <tr>
                 <td style="width: 50%; vertical-align: top; padding-right: 20px;">
                   <div class="company-info">
-                   บริษัท ซีแลนด์ แอดเวนเจอร์ จำกัด (สำนักงานใหญ่)<br>
+                   บริษัท ซีแลนด์ แอดเวนเจอร์ จำกัด<br>
                    23 ม.2 ต.สองแพรก อ.เมือง จ.พังงา<br>
                    เลขประจำตัวผู้เสียภาษี 0825566000935
                   </div>
@@ -465,34 +549,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">1</td>
-                <td style="padding: 10px; border-bottom: 1px solid #f3f4f6;">ผู้ใหญ่</td>
-                <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">${
-                  booking.adults || 0
-                }</td>
-                <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${(
-                  booking.adultPrice || 0
-                ).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
-                <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${adultTotal.toLocaleString(
-                  "th-TH",
-                  { minimumFractionDigits: 2 },
-                )}</td>
-              </tr>
-              <tr>
-                <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">2</td>
-                <td style="padding: 10px; border-bottom: 1px solid #f3f4f6;">เด็ก</td>
-                <td style="text-align: center; padding: 10px; border-bottom: 1px solid #f3f4f6;">${
-                  booking.children || 0
-                }</td>
-                <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${(
-                  booking.childPrice || 0
-                ).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
-                <td style="text-align: right; padding: 10px; border-bottom: 1px solid #f3f4f6;">${childTotal.toLocaleString(
-                  "th-TH",
-                  { minimumFractionDigits: 2 },
-                )}</td>
-              </tr>
+              ${itemsHtml}
             </tbody>
           </table>
 
@@ -502,7 +559,7 @@
                 ? `
               <div class="summary-row">
               <span class="summary-label">ค่าใช้จ่ายเพิ่มเติม</span>
-              <span class="summary-value">${booking.additionalCost.toLocaleString(
+              <span class="summary-value">${additionalCost.toLocaleString(
                 "th-TH",
                 {
                   minimumFractionDigits: 2,
@@ -527,11 +584,12 @@
             }
             <div class="summary-row">
               <span class="summary-label">ส่วนลด</span>
-              <span class="summary-value">${(
-                booking.discount || 0
-              ).toLocaleString("th-TH", {
-                minimumFractionDigits: 2,
-              })} บาท</span>
+              <span class="summary-value">${(discount || 0).toLocaleString(
+                "th-TH",
+                {
+                  minimumFractionDigits: 2,
+                },
+              )} บาท</span>
             </div>
             <div class="summary-row">
               <span class="summary-label">จำนวนรวมทั้งสิ้น</span>

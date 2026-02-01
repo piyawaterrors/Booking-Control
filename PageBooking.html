@@ -133,7 +133,7 @@
             <input
               type="text"
               id="searchBooking"
-              placeholder="ค้นหาการจอง..."
+              placeholder="ค้นหา AGENT / ชื่อลูกค้า..."
               onkeyup="filterBookings()"
               class="w-full input-modern pl-10"
             />
@@ -215,12 +215,12 @@
           <th
             class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
-            วันที่จอง
+            ชื่อลูกค้า
           </th>
           <th
             class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
           >
-            วันที่เดินทาง
+            วันที่จอง/เดินทาง
           </th>
           <th
             class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
@@ -257,7 +257,7 @@
       </thead>
       <tbody id="bookingTableBody" class="divide-y divide-gray-100">
         <tr>
-          <td colspan="9" class="px-6 py-12 text-center text-gray-400">
+          <td colspan="10" class="px-6 py-12 text-center text-gray-400">
             <div class="flex flex-col items-center justify-center space-y-3">
               <div
                 class="w-10 h-10 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"
@@ -519,34 +519,70 @@
             <label class="block text-sm font-medium text-gray-700 mb-2"
               >ผู้ใหญ่ (คน) <span class="text-red-500">*</span></label
             >
-            <input
-              type="number"
-              id="adults"
-              min="0"
-              value="0"
-              required
-              class="input-modern"
-              onfocus="this.select()"
-              oninput="calculateTotal()"
-            />
+            <div class="relative">
+              <input
+                type="number"
+                id="adults"
+                min="0"
+                value="0"
+                required
+                class="input-modern pr-24"
+                onfocus="this.select()"
+                oninput="calculateTotal()"
+              />
+              <div
+                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-sm text-gray-400 font-medium"
+              >
+                <span id="adultPriceDisplay">0</span>
+              </div>
+            </div>
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2"
               >เด็ก (คน)</label
             >
-            <input
-              type="number"
-              id="children"
-              min="0"
-              value="0"
-              class="input-modern"
-              onfocus="this.select()"
-              oninput="calculateTotal()"
-            />
+            <div class="relative">
+              <input
+                type="number"
+                id="children"
+                min="0"
+                value="0"
+                class="input-modern pr-24"
+                onfocus="this.select()"
+                oninput="calculateTotal()"
+              />
+              <div
+                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-sm text-gray-400 font-medium"
+              >
+                <span id="childPriceDisplay">0</span>
+              </div>
+            </div>
           </div>
 
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >FOC (คน)</label
+            >
+            <div class="relative">
+              <input
+                type="number"
+                id="foc"
+                min="0"
+                value="0"
+                class="input-modern pr-24"
+                onfocus="this.select()"
+                oninput="calculateTotal()"
+              />
+              <div
+                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-sm text-gray-400 font-medium"
+              >
+                <span>0 บาท</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hidden">
             <label class="block text-sm font-medium text-gray-700 mb-2"
               >ราคาผู้ใหญ่ (บาท) <span class="text-red-500">*</span></label
             >
@@ -562,7 +598,7 @@
             />
           </div>
 
-          <div>
+          <div class="hidden">
             <label class="block text-sm font-medium text-gray-700 mb-2"
               >ราคาเด็ก (บาท)</label
             >
@@ -607,27 +643,53 @@
             />
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2"
-              >รวม VAT 7%</label
-            >
-            <div class="flex items-center space-x-3">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="includeVat"
-                  class="sr-only peer"
-                  onchange="calculateTotal()"
-                />
-                <div
-                  class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
-                ></div>
-                <span
-                  class="ml-3 text-sm font-medium text-gray-700 peer-checked:text-purple-600"
-                  id="vatLabel"
-                  >ไม่รวม VAT</span
-                >
-              </label>
+          <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Vat 7% (นอก)</label
+              >
+              <div class="flex items-center space-x-3">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="vatExclude"
+                    class="sr-only peer"
+                    onchange="handleVatToggle('exclude')"
+                  />
+                  <div
+                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
+                  ></div>
+                  <span
+                    class="ml-3 text-sm font-medium text-gray-700 peer-checked:text-purple-600"
+                    id="vatExcludeLabel"
+                    >ไม่คิด VAT</span
+                  >
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Vat 7% (ใน)</label
+              >
+              <div class="flex items-center space-x-3">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="vatInclude"
+                    class="sr-only peer"
+                    onchange="handleVatToggle('include')"
+                  />
+                  <div
+                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"
+                  ></div>
+                  <span
+                    class="ml-3 text-sm font-medium text-gray-700 peer-checked:text-green-600"
+                    id="vatIncludeLabel"
+                    >คิด VAT</span
+                  >
+                </label>
+              </div>
             </div>
           </div>
 
@@ -638,6 +700,18 @@
             >
               ข้อมูลสำหรับคนขับรถ
             </h3>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >ชื่อลูกค้า</label
+            >
+            <input
+              type="text"
+              id="customerName"
+              placeholder="ระบุชื่อลูกค้า"
+              class="input-modern"
+            />
           </div>
 
           <div>
@@ -932,6 +1006,32 @@
                   >
                 </div>
 
+                <!-- FOC Row -->
+                <div
+                  class="flex items-center justify-between text-sm"
+                  id="focRow"
+                >
+                  <div class="flex items-center space-x-2">
+                    <svg
+                      class="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                    <span class="text-gray-600 font-medium" id="focSummary"
+                      >FOC: 0 คน</span
+                    >
+                  </div>
+                  <span class="font-semibold text-gray-900">0 ฿</span>
+                </div>
+
                 <div
                   class="flex items-center justify-between text-sm"
                   id="additionalCostRow"
@@ -961,32 +1061,6 @@
                   >
                 </div>
 
-                <!-- VAT 7% Row (shown when VAT is enabled) -->
-                <div
-                  class="flex items-center justify-between text-sm hidden"
-                  id="vatRow"
-                >
-                  <div class="flex items-center space-x-2">
-                    <svg
-                      class="w-4 h-4 text-green-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      ></path>
-                    </svg>
-                    <span class="text-gray-600 font-medium">VAT 7%</span>
-                  </div>
-                  <span class="font-semibold text-gray-900" id="vatAmount"
-                    >0 ฿</span
-                  >
-                </div>
-
                 <div
                   class="flex items-center justify-between text-sm"
                   id="discountRow"
@@ -1012,14 +1086,64 @@
                   >
                 </div>
 
+                <!-- VAT Breakdown (shown when VAT is enabled) -->
+                <div class="hidden" id="vatBreakdown">
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center space-x-2">
+                      <svg
+                        class="w-4 h-4 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        ></path>
+                      </svg>
+                      <span class="text-gray-600 font-medium">VAT 7%</span>
+                    </div>
+                    <span
+                      class="font-semibold text-green-700"
+                      id="vatBreakdownAmount"
+                      >0 ฿</span
+                    >
+                  </div>
+                  <div class="flex items-center justify-between text-sm mt-3">
+                    <div class="flex items-center space-x-2">
+                      <svg
+                        class="w-4 h-4 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                        ></path>
+                      </svg>
+                      <span class="text-gray-600 font-medium">ยอดก่อน VAT</span>
+                    </div>
+                    <span
+                      class="font-semibold text-gray-900"
+                      id="vatBreakdownBase"
+                      >0 ฿</span
+                    >
+                  </div>
+                </div>
+
                 <div class="border-t-2 border-purple-300 pt-3 mt-2"></div>
               </div>
 
               <!-- Total Amount -->
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center space-x-2">
                   <svg
-                    class="w-6 h-6 text-purple-600"
+                    class="w-5 h-5 md:w-6 md:h-6 text-purple-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1031,13 +1155,20 @@
                       d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     ></path>
                   </svg>
-                  <span class="text-xl font-bold text-gray-800"
+                  <span class="text-lg md:text-xl font-bold text-gray-800"
                     >ยอดรวมทั้งหมด</span
                   >
                 </div>
-                <span class="text-3xl font-bold text-gray-900" id="totalAmount"
-                  >0 ฿</span
-                >
+                <div class="flex items-baseline gap-1">
+                  <span
+                    class="text-2xl md:text-4xl font-extrabold text-gray-900 leading-tight"
+                    id="totalAmount"
+                    >0</span
+                  >
+                  <span class="text-lg md:text-2xl font-bold text-gray-900"
+                    >฿</span
+                  >
+                </div>
               </div>
             </div>
           </div>
@@ -1475,7 +1606,7 @@
 
     // Update filter display
     document.getElementById("currentBookingFilterText").textContent =
-      `${formatDateThai(startDate)} - ${formatDateThai(endDate)}`;
+      `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
     // Reload bookings with new dates
     loadBookings(startDate, endDate);
@@ -1696,8 +1827,11 @@
     if (!hasData) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="${colSpan}" class="px-4 py-8 text-center text-gray-500">
-            ไม่พบข้อมูลการจอง
+          <td colspan="${colSpan}" class="px-6 py-12 text-center text-gray-400">
+            <div class="flex flex-col items-center space-y-3">
+              <span class="text-lg font-semibold">ไม่พบข้อมูลการจอง</span>
+              <p class="text-sm text-gray-400">ไม่พบข้อมูลการจองที่ตรงกับเงื่อนไขที่เลือก</p>
+            </div>
           </td>
         </tr>
       `;
@@ -1712,16 +1846,12 @@
             !isCancelled &&
             !isCompleted &&
             currentSession &&
-            (currentSession.role === "Owner" ||
-              (currentSession.role === "OP" &&
-                booking.createdBy === currentSession.username));
+            (currentSession.role === "Owner" || currentSession.role === "OP");
 
           const canDelete =
             !isCancelled &&
             currentSession &&
-            (currentSession.role === "Owner" ||
-              (currentSession.role === "OP" &&
-                booking.createdBy === currentSession.username));
+            (currentSession.role === "Owner" || currentSession.role === "OP");
 
           let actionButtons = "";
 
@@ -1742,26 +1872,37 @@
                   booking.agent || "-"
                 }</div>
                 <div class="text-xs text-gray-500">โดย: ${booking.createdBy}</div>
+                <div class="text-[10px] text-gray-400 mt-0.5">${booking.createdAt || ""}</div>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-700">${
-                booking.bookingDate
-              }</td>
-              <td class="px-6 py-4 text-sm text-gray-700">${
-                booking.travelDate
-              }</td>
+              <td class="px-6 py-4">
+                <div class="text-sm font-medium text-blue-900">${
+                  booking.customerName || "-"
+                }</div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-xs text-gray-500 mb-1">จอง: ${booking.bookingDate}</div>
+                <div class="text-xs text-gray-500">เดินทาง: ${booking.travelDate}</div>
+              </td>
               <td class="px-6 py-4">
                 <div class="text-sm font-medium text-gray-900">${
                   booking.location
                 }</div>
                 <div class="text-xs text-gray-500">${booking.program}</div>
-              </td>
+              </td> 
               <td class="px-6 py-4">
-                <div class="text-sm font-bold text-gray-900">${formatNumber(
-                  booking.totalAmount,
-                )} ฿</div>
-                <div class="text-xs text-gray-500">${booking.adults} ผู้ใหญ่, ${
-                  booking.children
-                } เด็ก</div>
+                ${
+                  booking.vatIn === "Yes"
+                    ? (() => {
+                        const total = Number(booking.totalAmount);
+                        const beforeVat = Math.round(total / 1.07);
+                        const vatAmount = total - beforeVat;
+                        return `<div class="text-sm font-bold text-gray-900">${formatNumber(beforeVat)} ฿ <span class="text-[9px] bg-green-100 text-green-700 px-1 rounded">Vat In</span></div>
+                        <div class="text-xs text-gray-500">+ VAT ${formatNumber(vatAmount)} ฿ = ${formatNumber(total)} ฿</div>
+                        <div class="text-xs text-gray-400 mt-0.5">${booking.adults} ผู้ใหญ่, ${booking.children} เด็ก${booking.foc ? `, ${booking.foc} FOC` : ""}</div>`;
+                      })()
+                    : `<div class="text-sm font-bold text-gray-900">${formatNumber(booking.totalAmount)} ฿</div>
+                       <div class="text-xs text-gray-500">${booking.adults} ผู้ใหญ่, ${booking.children} เด็ก${booking.foc ? `, ${booking.foc} FOC` : ""}</div>`
+                }
               </td>
               <td class="px-6 py-4 text-center">
                 ${statusBadge}
@@ -1811,35 +1952,32 @@
     if (gridBody) {
       if (!hasData) {
         gridBody.innerHTML = `
-          <div class="col-span-full py-12 text-center text-gray-500 bg-white rounded-2xl border-2 border-dashed border-gray-100">
-            <div class="flex flex-col items-center">
-              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-              </svg>
-              <span class="font-medium">ไม่พบข้อมูลการจอง</span>
+          <div class="col-span-full py-12 text-center text-gray-400 bg-white rounded-2xl border-2 border-dashed border-gray-100">
+            <div class="flex flex-col items-center space-y-3">
+              <span class="text-lg font-semibold">ไม่พบข้อมูลการจอง</span>
+              <p class="text-sm text-gray-400">ไม่พบข้อมูลการจองที่ตรงกับเงื่อนไขที่เลือก</p>
             </div>
           </div>`;
       } else {
         gridBody.innerHTML = bookings
           .map((booking) => {
             const statusBadge = getStatusBadge(booking.status);
-            const totalPeople = (booking.adults || 0) + (booking.children || 0);
+            const totalPeople =
+              (booking.adults || 0) +
+              (booking.children || 0) +
+              (booking.foc || 0);
             const isCancelled = booking.status === "Cancel";
             const isCompleted = booking.status === "Completed";
             const canEdit =
               !isCancelled &&
               !isCompleted &&
               currentSession &&
-              (currentSession.role === "Owner" ||
-                (currentSession.role === "OP" &&
-                  booking.createdBy === currentSession.username));
+              (currentSession.role === "Owner" || currentSession.role === "OP");
 
             const canDelete =
               !isCancelled &&
               currentSession &&
-              (currentSession.role === "Owner" ||
-                (currentSession.role === "OP" &&
-                  booking.createdBy === currentSession.username));
+              (currentSession.role === "Owner" || currentSession.role === "OP");
 
             let actionButtons = "";
 
@@ -1895,7 +2033,17 @@
                  </div>
 
                  <div class="space-y-2 text-sm text-gray-600 mb-4 border-t border-b border-gray-50 py-3 bg-gray-50/50 -mx-4 px-4">
-                   <div class="flex justify-between">
+                     <div class="flex justify-between">
+                       <span class="text-gray-500 text-[10px] uppercase">ทำรายการโดย</span>
+                       <span class="font-medium text-gray-700 text-[10px]">${booking.createdBy} (${booking.createdAt})</span>
+                     </div>
+                     <div class="flex justify-between">
+                       <span class="text-gray-500">ลูกค้า</span>
+                       <span class="font-medium text-gray-800">${
+                         booking.customerName || "-"
+                       }</span>
+                     </div>
+                    <div class="flex justify-between">
                      <span class="text-gray-500">เดินทาง</span>
                      <span class="font-medium text-gray-800">${
                        booking.travelDate || "-"
@@ -1922,14 +2070,32 @@
                    <div class="flex justify-between pt-1 border-t border-gray-100 mt-1">
                      <span class="text-gray-500">จำนวนคน</span>
                      <span class="font-medium text-gray-800">${totalPeople} คน</span>
-                   </div>
-                   <div class="flex justify-between">
-                     <span class="text-gray-500">ยอดรวม</span>
-                     <span class="font-bold text-purple-600">${formatNumber(
-                       booking.totalAmount,
-                     )} ฿</span>
-                   </div>
-                 </div>
+                    </div>
+                    ${
+                      booking.vatIn === "Yes"
+                        ? (() => {
+                            const total = Number(booking.totalAmount);
+                            const beforeVat = Math.round(total / 1.07);
+                            const vatAmount = total - beforeVat;
+                            return `<div class="flex justify-between">
+                              <span class="text-gray-500">ยอดก่อน VAT</span>
+                              <span class="font-medium text-gray-800">${formatNumber(beforeVat)} ฿</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-gray-500">VAT 7%</span>
+                              <span class="font-medium text-gray-800">${formatNumber(vatAmount)} ฿</span>
+                            </div>
+                            <div class="flex justify-between pt-1 border-t border-gray-100 mt-1">
+                              <span class="text-gray-500 font-semibold">ยอดรวม (Vat In)</span>
+                              <span class="font-bold text-purple-600">${formatNumber(total)} ฿</span>
+                            </div>`;
+                          })()
+                        : `<div class="flex justify-between">
+                            <span class="text-gray-500">ยอดรวม</span>
+                            <span class="font-bold text-purple-600">${formatNumber(booking.totalAmount)} ฿</span>
+                          </div>`
+                    }
+                  </div>
 
                   <div class="grid grid-cols-2 gap-2">
                     <button onclick="viewBooking('${
@@ -1950,7 +2116,7 @@
                           ? `<button onclick="viewInvoice('${booking.bookingId}')" class="flex items-center justify-center py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors">
                             ใบแจ้งหนี้
                           </button>
-                          <button onclick="viewReceipt('${booking.bookingId}')" class="col-span-2 flex items-center justify-center py-2 bg-green-50 text-green-700 rounded-xl text-sm font-bold hover:bg-green-100 transition-colors">
+                          <button onclick="viewReceipt('${booking.bookingId}')" class="flex items-center justify-center py-2 bg-green-50 text-green-700 rounded-xl text-sm font-bold hover:bg-green-100 transition-colors">
                             ใบเสร็จ
                           </button>`
                           : `<button onclick="viewInvoice('${booking.bookingId}')" class="flex items-center justify-center py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors">
@@ -1983,9 +2149,15 @@
       // Search filter
       const matchSearch =
         !searchText ||
-        booking.bookingId.toLowerCase().includes(searchText) ||
-        booking.location.toLowerCase().includes(searchText) ||
-        booking.program.toLowerCase().includes(searchText);
+        (booking.bookingId &&
+          booking.bookingId.toLowerCase().includes(searchText)) ||
+        (booking.location &&
+          booking.location.toLowerCase().includes(searchText)) ||
+        (booking.program &&
+          booking.program.toLowerCase().includes(searchText)) ||
+        (booking.customerName &&
+          booking.customerName.toLowerCase().includes(searchText)) ||
+        (booking.agent && booking.agent.toLowerCase().includes(searchText));
 
       // Status filter
       const matchStatus = !statusFilter || booking.status === statusFilter;
@@ -2002,11 +2174,11 @@
         if (bookingDate && bookingDate.includes("/")) {
           const parts = bookingDate.split("/");
           if (parts.length === 3) {
-            // Convert DD/MM/YYYY to YYYY-MM-DD correctly with padding
-            const y = parts[2];
-            const m = parts[1].padStart(2, "0");
+            // Convert DD/MM/YYYY [HH:mm] to YYYY-MM-DD correctly with padding
             const d = parts[0].padStart(2, "0");
-            const comparableDate = `${y}-${m}-${d}`;
+            const m = parts[1].padStart(2, "0");
+            const yFull = parts[2].split(" ")[0]; // Get only YYYY
+            const comparableDate = `${yFull}-${m}-${d}`;
             matchDate =
               (!dateFrom || comparableDate >= dateFrom) &&
               (!dateTo || comparableDate <= dateTo);
@@ -2103,15 +2275,13 @@
     document.getElementById("bookingForm").reset();
     document.getElementById("bookingId").value = "";
 
-    // Set default booking date to today (Local Time)
-    const today = new Date();
-    // Adjust for timezone to ensure we get the correct local YYYY-MM-DD
-    const localISOTime = new Date(
-      today.getTime() - today.getTimezoneOffset() * 60000,
-    )
-      .toISOString()
-      .split("T")[0];
-    document.getElementById("bookingDate").value = localISOTime;
+    // Set default booking date to today with current time (Local Time)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const localDate = `${year}-${month}-${day}`;
+    document.getElementById("bookingDate").value = localDate;
 
     // Load locations and programs
     loadLocationsToSelect();
@@ -2126,10 +2296,16 @@
     document.getElementById("discountAmount").textContent = "0 ฿";
     document.getElementById("totalAmount").textContent = "0 ฿";
 
+    // อัปเดตการแสดงราคาด้านหลังช่องจำนวน
+    document.getElementById("adultPriceDisplay").textContent = "x 0 บาท";
+    document.getElementById("childPriceDisplay").textContent = "x 0 บาท";
+
     // Reset VAT
-    document.getElementById("includeVat").checked = false;
-    document.getElementById("vatRow").classList.add("hidden");
-    document.getElementById("vatLabel").textContent = "ไม่รวม VAT";
+    document.getElementById("vatExclude").checked = false;
+    document.getElementById("vatInclude").checked = false;
+    document.getElementById("vatExcludeLabel").textContent = "ไม่คิด VAT";
+    document.getElementById("vatIncludeLabel").textContent = "คิด VAT";
+    // vatRow/vatLabel references removed as elements are gone
 
     // Reset Cash on Tour
     document.getElementById("includeCashOnTour").checked = false;
@@ -2223,13 +2399,51 @@
     const selectedOption = select.options[select.selectedIndex];
 
     if (selectedOption && selectedOption.value) {
-      document.getElementById("adultPrice").value =
-        selectedOption.dataset.adultPrice || 0;
-      document.getElementById("childPrice").value =
-        selectedOption.dataset.childPrice || 0;
+      const adultPrice = selectedOption.dataset.adultPrice || 0;
+      const childPrice = selectedOption.dataset.childPrice || 0;
+
+      document.getElementById("adultPrice").value = adultPrice;
+      document.getElementById("childPrice").value = childPrice;
+
+      // อัปเดตการแสดงราคาด้านหลังช่องจำนวน
+      document.getElementById("adultPriceDisplay").textContent =
+        "x " + formatNumber(adultPrice) + " บาท";
+      document.getElementById("childPriceDisplay").textContent =
+        "x " + formatNumber(childPrice) + " บาท";
     } else {
       document.getElementById("adultPrice").value = 0;
       document.getElementById("childPrice").value = 0;
+      document.getElementById("adultPriceDisplay").textContent = "0";
+      document.getElementById("childPriceDisplay").textContent = "0";
+    }
+    calculateTotal();
+  }
+
+  /**
+   * Handle VAT Toggle Exclusivity
+   */
+  function handleVatToggle(type) {
+    const exclude = document.getElementById("vatExclude");
+    const include = document.getElementById("vatInclude");
+    const excludeLabel = document.getElementById("vatExcludeLabel");
+    const includeLabel = document.getElementById("vatIncludeLabel");
+
+    if (type === "exclude") {
+      if (exclude.checked) {
+        include.checked = false;
+        includeLabel.textContent = "คิด VAT";
+        excludeLabel.textContent = "คิด VAT (นอก)";
+      } else {
+        excludeLabel.textContent = "ไม่คิด VAT";
+      }
+    } else {
+      if (include.checked) {
+        exclude.checked = false;
+        excludeLabel.textContent = "ไม่คิด VAT";
+        includeLabel.textContent = "ไม่คิด VAT)";
+      } else {
+        includeLabel.textContent = "คิด VAT";
+      }
     }
     calculateTotal();
   }
@@ -2240,6 +2454,7 @@
   function calculateTotal() {
     const adults = parseInt(document.getElementById("adults").value) || 0;
     const children = parseInt(document.getElementById("children").value) || 0;
+    const foc = parseInt(document.getElementById("foc").value) || 0;
     const adultPrice =
       parseFloat(document.getElementById("adultPrice").value) || 0;
     const childPrice =
@@ -2247,16 +2462,38 @@
     const additionalCost =
       parseFloat(document.getElementById("additionalCost").value) || 0;
     const discount = parseFloat(document.getElementById("discount").value) || 0;
-    const includeVat = document.getElementById("includeVat").checked;
+    const vatExclude = document.getElementById("vatExclude").checked;
+    const vatInclude = document.getElementById("vatInclude").checked;
 
     // Calculate subtotals
     const adultSubtotal = adults * adultPrice;
     const childSubtotal = children * childPrice;
     const subtotal = adultSubtotal + childSubtotal + additionalCost - discount;
 
-    // Calculate VAT if enabled
-    const vatAmount = includeVat ? Math.round(subtotal * 0.07) : 0;
-    const total = subtotal + vatAmount;
+    let vatAmount = 0;
+    let total = subtotal;
+    let baseAmount = subtotal;
+
+    if (vatExclude) {
+      // VAT Out: Add VAT on top
+      vatAmount = Math.round(subtotal * 0.07);
+      total = subtotal + vatAmount;
+    } else if (vatInclude) {
+      // VAT In (เปิด = คิด VAT ใน): Deduct VAT from total
+      // Input: 1800 (includes VAT)
+      // Base: 1800 / 1.07 = 1682
+      // VAT: 1800 - 1682 = 118
+      // Final Total: 1682 (VAT deducted)
+      baseAmount = Math.round(subtotal / 1.07); // 1682
+      vatAmount = subtotal - baseAmount; // 118
+      total = baseAmount; // 1682 (deduct VAT)
+    } else {
+      // No VAT selected, but still calculate breakdown for display
+      // This allows showing VAT info even when switch is off
+      baseAmount = Math.round(subtotal / 1.07); // 1682
+      vatAmount = subtotal - baseAmount; // 118
+      total = subtotal; // 1800 (no deduction)
+    }
 
     // Update adult summary
     document.getElementById("adultSummary").textContent =
@@ -2278,22 +2515,24 @@
     document.getElementById("discountAmount").textContent =
       discount > 0 ? `${formatNumber(discount)} ฿` : "0 ฿";
 
-    // Update VAT row visibility and amount
-    const vatRow = document.getElementById("vatRow");
-    const vatLabel = document.getElementById("vatLabel");
-    if (includeVat) {
-      vatRow.classList.remove("hidden");
-      document.getElementById("vatAmount").textContent =
-        formatNumber(vatAmount) + " ฿";
-      vatLabel.textContent = "รวม VAT";
-    } else {
-      vatRow.classList.add("hidden");
-      vatLabel.textContent = "ไม่รวม VAT";
+    // Update FOC
+    const focSummaryEl = document.getElementById("focSummary");
+    if (focSummaryEl) {
+      focSummaryEl.textContent = `FOC: ${foc} คน`;
     }
 
+    // (vatRow removal - VAT is now shown in unified Breakdown below)
+
     // Update total
-    document.getElementById("totalAmount").textContent =
-      formatNumber(total) + " ฿";
+    document.getElementById("totalAmount").textContent = formatNumber(total);
+
+    // Store original subtotal for VAT breakdown calculation
+    document.getElementById("totalAmount").dataset.originalSubtotal = subtotal;
+    document.getElementById("totalAmount").dataset.baseAmount = baseAmount;
+    document.getElementById("totalAmount").dataset.vatAmount = vatAmount;
+
+    // Update VAT breakdown display
+    updateVatBreakdown();
   }
 
   /**
@@ -2316,6 +2555,7 @@
       // Get form data
       const adults = parseInt(document.getElementById("adults").value) || 0;
       const children = parseInt(document.getElementById("children").value) || 0;
+      const foc = parseInt(document.getElementById("foc").value) || 0;
       const adultPrice =
         parseFloat(document.getElementById("adultPrice").value) || 0;
       const childPrice =
@@ -2324,12 +2564,38 @@
         parseFloat(document.getElementById("additionalCost").value) || 0;
       const discount =
         parseFloat(document.getElementById("discount").value) || 0;
-      const includeVat = document.getElementById("includeVat").checked;
+      const vatExclude = document.getElementById("vatExclude").checked;
+      const vatInclude = document.getElementById("vatInclude").checked;
 
-      // Calculate VAT amount
-      const subtotal =
+      // Calculate VAT amounts
+      const sub =
         adults * adultPrice + children * childPrice + additionalCost - discount;
-      const vatAmount = includeVat ? Math.round(subtotal * 0.07) : 0;
+      const breakdownVat = sub - Math.round(sub / 1.07);
+      const outVat = Math.round(sub * 0.07);
+
+      let finalVat = 0;
+      let finalVatIn = 0;
+
+      if (vatExclude) {
+        finalVat = outVat;
+        finalVatIn = 0;
+      } else if (vatInclude) {
+        finalVat = 0;
+        finalVatIn = breakdownVat;
+      } else {
+        finalVat = 0;
+        finalVatIn = 0;
+      }
+
+      // Calculate final total to save
+      let totalToSave = sub;
+      if (vatExclude) {
+        totalToSave = sub + finalVat;
+      } else if (vatInclude) {
+        totalToSave = sub - finalVatIn; // ยอดเน็ตหลังหัก VAT
+      } else {
+        totalToSave = sub; // ยอดเต็ม ไม่หัก VAT (แต่เก็บข้อมูล vatIn ไว้เฉยๆ)
+      }
 
       const bookingData = {
         bookingDate: document.getElementById("bookingDate").value,
@@ -2338,13 +2604,16 @@
         program: document.getElementById("program").value,
         adults: adults,
         children: children,
+        foc: foc,
         adultPrice: adultPrice,
         childPrice: childPrice,
         additionalCost: additionalCost,
         discount: discount,
-        vat: vatAmount, // Send calculated amount
-        includeVat: includeVat, // Also send flag just in case
+        vat: finalVat,
+        vatIn: finalVatIn,
+        totalAmount: totalToSave,
         agent: document.getElementById("agent").value,
+        customerName: document.getElementById("customerName").value,
         vcNo: document.getElementById("vcNo").value,
         pickupTime: document.getElementById("pickupTime").value,
         hotelName: document.getElementById("hotelName").value,
@@ -2542,13 +2811,44 @@
 
     document.getElementById("adults").value = booking.adults;
     document.getElementById("children").value = booking.children;
+    document.getElementById("foc").value = booking.foc || 0;
     document.getElementById("adultPrice").value = booking.adultPrice;
     document.getElementById("childPrice").value = booking.childPrice;
+
+    // อัปเดตการแสดงราคาด้านหลังช่องจำนวน
+    document.getElementById("adultPriceDisplay").textContent =
+      "x " + formatNumber(booking.adultPrice) + " บาท";
+    document.getElementById("childPriceDisplay").textContent =
+      "x " + formatNumber(booking.childPrice) + " บาท";
     document.getElementById("additionalCost").value =
       booking.additionalCost || 0;
     document.getElementById("discount").value = booking.discount;
-    document.getElementById("includeVat").checked = booking.vat > 0;
+
+    // Handle VAT Type Detection
+    const subtotalForCheck =
+      (Number(booking.adults) || 0) * (Number(booking.adultPrice) || 0) +
+      (Number(booking.children) || 0) * (Number(booking.childPrice) || 0) +
+      (Number(booking.additionalCost) || 0) -
+      (Number(booking.discount) || 0);
+
+    const isVatExclude = Number(booking.vat) > 0;
+    // VAT Include (ใน): ยอดขายรวม (totalAmount) น้อยกว่ายอดรวมปกติ (subtotal)
+    // ใช้ผลต่างอย่างน้อย 1 บาทเพื่อเลี่ยงปัญหาการปัดเศษ
+    const isVatInclude =
+      Number(booking.vatIn) > 0 &&
+      subtotalForCheck - Number(booking.totalAmount) >= 1;
+
+    const exclude = document.getElementById("vatExclude");
+    const include = document.getElementById("vatInclude");
+    const excludeLabel = document.getElementById("vatExcludeLabel");
+    const includeLabel = document.getElementById("vatIncludeLabel");
+
+    exclude.checked = isVatExclude;
+    include.checked = isVatInclude;
+    excludeLabel.textContent = isVatExclude ? "คิด VAT (นอก)" : "ไม่คิด VAT";
+    includeLabel.textContent = isVatInclude ? "ไม่คิด VAT" : "คิด VAT";
     document.getElementById("agent").value = booking.agent || "";
+    document.getElementById("customerName").value = booking.customerName || "";
     document.getElementById("vcNo").value = booking.vcNo || "";
     document.getElementById("pickupTime").value = booking.pickupTime || "";
     document.getElementById("hotelName").value = booking.hotelName || "";
@@ -2665,7 +2965,7 @@
       // Excel/Google Sheets Format (Tab-separated)
       text = `${booking.agent || ""}\t${booking.vcNo || ""}\t${booking.pickupTime || ""}\t${
         booking.hotelName || ""
-      }\t${booking.roomNumber || ""}\t${""}\t${booking.adults}\t${booking.children}\t${" "}\t${booking.program || ""}\t${" "}\t${
+      }\t${booking.roomNumber || ""}\t${booking.customerName || ""}\t${booking.adults}\t${booking.children}\t${booking.foc}\t${booking.program || ""}\t${""}\t${
         booking.notes1 || ""
       }`;
     } else {
@@ -2673,6 +2973,7 @@
       text = `ข้อมูลสำหรับคนขับรถ
 -------------------
 เดินทาง: ${booking.travelDate || "-"}
+ลูกค้า: ${booking.customerName || "-"}
 โรงแรม: ${booking.hotelName || "-"}
 เวลารับ: ${booking.pickupTime ? booking.pickupTime + " น." : "-"}
 ห้อง: ${booking.roomNumber || "-"}
@@ -2934,7 +3235,35 @@ VC No.: ${booking.vcNo || "-"}
 
     // Get status badge HTML
     const statusBadge = getStatusBadge(booking.status);
-    const totalPeople = (booking.adults || 0) + (booking.children || 0);
+    const totalPeople =
+      (booking.adults || 0) + (booking.children || 0) + (booking.foc || 0);
+
+    const subVal =
+      (Number(booking.adults) || 0) * (Number(booking.adultPrice) || 0) +
+      (Number(booking.children) || 0) * (Number(booking.childPrice) || 0) +
+      (Number(booking.additionalCost) || 0) -
+      (Number(booking.discount) || 0);
+
+    let vatVal = 0;
+    let baseVal = 0;
+    let vatLabel = "VAT 7%";
+
+    if (Number(booking.vat) > 0) {
+      // VAT นอก (Exclude)
+      vatVal = Number(booking.vat);
+      baseVal = subVal;
+      vatLabel = "คิด VAT (นอก) 7%";
+    } else if (Number(booking.vatIn) > 0) {
+      // VAT ใน (Include)
+      vatVal = Number(booking.vatIn);
+      baseVal = Number(booking.totalAmount);
+      vatLabel = "ไม่คิด VAT (ใน) 7%";
+    } else {
+      // ไม่คิด VAT
+      baseVal = Math.round(subVal / 1.07);
+      vatVal = subVal - baseVal;
+      vatLabel = "คิด VAT (ใน) 7%";
+    }
 
     const content = `
       <div class="space-y-6">
@@ -2964,6 +3293,10 @@ VC No.: ${booking.vcNo || "-"}
                    <div class="flex justify-between">
                       <span class="text-sm text-gray-500">ทำรายการโดย</span>
                       <span class="text-sm font-medium text-gray-900">${booking.createdBy}</span>
+                   </div>
+                   <div class="flex justify-between">
+                      <span class="text-sm text-gray-500">วันที่ทำรายการ</span>
+                      <span class="text-sm font-medium text-gray-900">${booking.createdAt || "-"}</span>
                    </div>
                 </div>
             </div>
@@ -3022,11 +3355,17 @@ VC No.: ${booking.vcNo || "-"}
                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                       </div>
                       <div class="flex-1">
-                         <p class="text-xs text-purple-600 font-bold uppercase mb-1">VC No.</p>
-                         <p class="text-base font-bold text-gray-900">${booking.vcNo || "-"}</p>
-                         <div class="mt-2 pt-2 border-t border-purple-200">
-                            <p class="text-xs text-purple-600 font-bold uppercase mb-1">เวลารับ</p>
-                            <p class="text-lg font-bold text-purple-700">${booking.pickupTime ? booking.pickupTime + " น." : "-"}</p>
+                         <p class="text-xs text-purple-600 font-bold uppercase mb-1">ชื่อลูกค้า</p>
+                         <p class="text-base font-bold text-gray-900 mb-2">${booking.customerName || "-"}</p>
+                         <div class="grid grid-cols-2 gap-2 border-t border-purple-200 pt-2">
+                            <div>
+                               <p class="text-xs text-purple-600 font-bold uppercase mb-1">VC No.</p>
+                               <p class="text-sm font-bold text-gray-900">${booking.vcNo || "-"}</p>
+                            </div>
+                            <div>
+                               <p class="text-xs text-purple-600 font-bold uppercase mb-1">เวลารับ</p>
+                               <p class="text-sm font-bold text-purple-700">${booking.pickupTime ? booking.pickupTime + " น." : "-"}</p>
+                            </div>
                          </div>
                       </div>
                    </div>
@@ -3070,7 +3409,7 @@ VC No.: ${booking.vcNo || "-"}
            <div class="space-y-4">
              <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">จำนวนผู้เดินทาง</h4>
              <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                 <div class="grid grid-cols-2 gap-3">
+                 <div class="grid grid-cols-3 gap-3">
                      <div class="bg-white rounded-lg p-3 text-center">
                          <p class="text-xs text-gray-500 font-medium">ผู้ใหญ่</p>
                          <p class="text-2xl font-bold text-blue-600">${
@@ -3079,10 +3418,14 @@ VC No.: ${booking.vcNo || "-"}
                      </div>
                      <div class="bg-white rounded-lg p-3 text-center">
                          <p class="text-xs text-gray-500 font-medium">เด็ก</p>
-                         <p class="text-2xl font-bold text-indigo-600">${
+                         <p class="text-2xl font-bold text-blue-600">${
                            booking.children || 0
                          }</p>
                      </div>
+                     <div class="bg-white rounded-lg p-3 text-center">
+                          <p class="text-xs text-gray-500 font-medium">FOC</p>
+                          <p class="text-2xl font-bold text-blue-600">${booking.foc || 0}</p>
+                      </div>
                  </div>
                  <div class="mt-3 pt-3 border-t border-blue-200 text-center">
                      <p class="text-sm text-gray-600">รวม <span class="font-bold text-gray-900">${totalPeople}</span> คน</p>
@@ -3092,7 +3435,7 @@ VC No.: ${booking.vcNo || "-"}
 
            <!-- Payment Breakdown -->
            <div class="space-y-4">
-             <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">รายละเอียดการชำระ</h4>
+             <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">รายละเอียดการชำระ (${vatLabel})</h4>
              <div class="bg-green-50 border border-green-100 rounded-lg p-4">
                  <div class="space-y-2">
                      <div class="flex justify-between text-sm">
@@ -3111,34 +3454,36 @@ VC No.: ${booking.vcNo || "-"}
                          } × ${Number(
                            booking.childPrice,
                          ).toLocaleString()})</span>
-                         <span class="font-semibold text-gray-900">${Number(
-                           (booking.children || 0) * booking.childPrice,
-                         ).toLocaleString()} ฿</span>
-                     </div>
+                          <span class="font-semibold text-gray-900">${Number(
+                            (booking.children || 0) * booking.childPrice,
+                          ).toLocaleString()} ฿</span>
+                      </div>
+                      <div class="flex justify-between text-sm">
+                         <span class="text-gray-600">FOC (${
+                           booking.foc || 0
+                         } × 0)</span>
+                          <span class="font-semibold text-gray-900">0 ฿</span>
+                      </div>
                      <div class="flex justify-between text-sm">
                          <span class="text-gray-600">ค่าใช้จ่ายเพิ่มเติม</span>
                          <span class="font-semibold text-gray-900">${Number(
                            booking.additionalCost || 0,
                          ).toLocaleString()} ฿</span>
                      </div>
-                     ${
-                       booking.vat
-                         ? `
-                     <div class="flex justify-between text-sm">
-                         <span class="text-gray-600">VAT 7%</span>
-                         <span class="font-semibold text-gray-900">${Number(
-                           booking.vat || 0,
-                         ).toLocaleString()} ฿</span>
-                     </div>
-                     `
-                         : ""
-                     }
                       <div class="flex justify-between text-sm">
                          <span class="text-gray-600">ส่วนลด</span>
                          <span class="font-semibold text-red-600">${Number(
                            booking.discount || 0,
                          ).toLocaleString()} ฿</span>
                      </div>
+                     <div class="flex justify-between text-sm">
+                      <span class="text-gray-600">VAT 7%</span>
+                      <span class="font-semibold text-gray-900">${vatVal.toLocaleString()} ฿</span>
+                      </div>
+                      <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">ยอดก่อน VAT</span>
+                        <span class="font-semibold text-gray-900">${baseVal.toLocaleString()} ฿</span>
+                        </div>
                      <div class="pt-2 mt-2 border-t border-green-200 flex justify-between">
                          <span class="font-bold text-gray-900">ยอดรวม</span>
                          <span class="font-bold text-gray-900 text-lg">${Number(
@@ -3247,6 +3592,46 @@ VC No.: ${booking.vcNo || "-"}
 
   function closeViewBookingModal() {
     closeModal("viewBookingModal", "viewBookingModalContent");
+  }
+
+  /**
+   * Update VAT Breakdown Display
+   */
+  function updateVatBreakdown() {
+    const vatInclude = document.getElementById("vatInclude");
+    const vatExclude = document.getElementById("vatExclude");
+    const totalAmountEl = document.getElementById("totalAmount");
+
+    // Unified VAT breakdown elements
+    const vatBreakdown = document.getElementById("vatBreakdown");
+    const vatBreakdownAmountEl = document.getElementById("vatBreakdownAmount");
+    const vatBreakdownBaseEl = document.getElementById("vatBreakdownBase");
+
+    if (!totalAmountEl) return;
+
+    // Parse the number correctly from textContent (removing commas)
+    const totalText = totalAmountEl.textContent.replace(/,/g, "");
+    const total = parseInt(totalText) || 0;
+
+    // Hide breakdown first
+    if (vatBreakdown) vatBreakdown.classList.add("hidden");
+
+    // Get stored values from calculateTotal
+    const originalSubtotal =
+      parseInt(totalAmountEl.dataset.originalSubtotal) || total;
+    const storedBase = parseInt(totalAmountEl.dataset.baseAmount) || total;
+    const storedVat = parseInt(totalAmountEl.dataset.vatAmount) || 0;
+
+    if (total > 0) {
+      // Show VAT breakdown for all bookings (Pre-VAT summary)
+      const baseAmount = storedBase;
+      const vatAmount = storedVat;
+
+      vatBreakdownAmountEl.textContent = vatAmount.toLocaleString() + " ฿";
+      vatBreakdownBaseEl.textContent = baseAmount.toLocaleString() + " ฿";
+
+      vatBreakdown.classList.remove("hidden");
+    }
   }
 
   // Initialize when page loads

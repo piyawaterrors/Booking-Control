@@ -98,7 +98,9 @@
           <h3 class="text-lg font-bold text-gray-800">
             ยอดขายรายวันตามสถานที่
           </h3>
-          <p class="text-xs text-gray-500 mt-1">เฉพาะสถานะ Completed</p>
+          <p class="text-xs text-gray-500 mt-1">
+            รวมรายการที่เคยเป็น Completed
+          </p>
           <div class="mt-2 flex flex-wrap items-center gap-2">
             <select
               id="sortDailySales"
@@ -217,7 +219,9 @@
       <div class="flex items-center justify-between mb-6">
         <div>
           <h3 class="text-lg font-bold text-gray-800">สรุปยอดแต่ละโปรแกรม</h3>
-          <p class="text-xs text-gray-500 mt-1">เฉพาะสถานะ Completed</p>
+          <p class="text-xs text-gray-500 mt-1">
+            รวมรายการที่เคยเป็น Completed
+          </p>
           <div class="mt-2">
             <select
               id="sortProgramSummary"
@@ -532,6 +536,7 @@
                 <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-[10px] text-gray-500">
                   <span>ผู้ใหญ่ ${item.totalAdults}</span>
                   <span>เด็ก ${item.totalChildren}</span>
+                  <span>FOC ${item.totalFoc || 0}</span>
                   <span>รายการจอง ${item.bookingCount}</span>
                 </div>
               </div>
@@ -582,6 +587,7 @@
                 <div class="flex items-center gap-4 text-[10px] text-gray-500">
                   <span>ผู้ใหญ่ ${item.totalAdults}</span>
                   <span>เด็ก ${item.totalChildren}</span>
+                  <span>FOC ${item.totalFoc || 0}</span>
                   <span>จอง ${item.bookingCount}</span>
                 </div>
               </div>
@@ -611,13 +617,15 @@
       return showToast("ไม่มีข้อมูลสำหรับส่งออก", "warning");
 
     let csvContent = "\uFEFF";
-    csvContent += "สถานที่,ผู้ใหญ่,เด็ก,รวมทั้งหมด,รายการจอง,ยอดขาย\n";
+    csvContent += "สถานที่,ผู้ใหญ่,เด็ก,FOC,รวมทั้งหมด,รายการจอง,ยอดขาย\n";
 
     data.forEach((item) => {
       const location = (item.location || "ไม่ระบุ").replace(/,/g, " ");
       csvContent += `${location},${item.totalAdults},${item.totalChildren},${
-        item.totalAdults + item.totalChildren
-      },${item.bookingCount},${item.totalSales}\n`;
+        item.totalFoc || 0
+      },${item.totalAdults + item.totalChildren + (item.totalFoc || 0)},${
+        item.bookingCount
+      },${item.totalSales}\n`;
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
